@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Image Compressor v2</title>
+    <!-- Google Fonts: Onest -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Design tokens aligned with Figma */
+            --color-text-primary: #070707;
+            --color-text-secondary: rgba(0, 26, 52, 0.6); /* #001a3499 */
+            --color-text-positive: #1ded62;
+            --color-text-onbrand: #ffffff;
+            --color-bg-page: #ffffff;
+            --color-bg-primary: #f5f7fa; /* Cards / previews */
+            --color-bg-brand: #005bff;   /* Primary button */
+            --color-bg-secondary: #e9eaf8; /* Secondary button */
+            --color-border: #e2e9f4;
+            --radius-md: 8px;
+            --radius-lg: 12px; /* ~ rounded-xl */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+            --font-size-caption: 12px; /* Caption/C1 - 12/16 */
+            --line-height-caption: 16px;
+            --font-size-body: 16px; /* Body/B1 - 16/20 */
+            --line-height-body: 20px;
+            --font-size-header: 18px; /* Header/Mobile/H5 - 18/22 */
+            --line-height-header: 22px;
+            --control-height: 44px; /* h-11 */
+        }
+
+        body {
+            font-family: 'Onest', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-size: var(--font-size-body);
+            line-height: var(--line-height-body);
+            color: var(--color-text-primary);
+            background: var(--color-bg-page);
+            padding: var(--space-lg);
+            /* Reserve space for fixed footer buttons so content isn't hidden */
+            padding-bottom: calc(var(--space-lg) + var(--control-height) + 8px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-md);
+            border-bottom: 1px solid var(--color-border);
+            display: none; /* hide header block visually, keep DOM for message anchor */
+        }
+
+        .header h1 {
+            font-size: var(--font-size-header);
+            line-height: var(--line-height-header);
+            font-weight: 500;
+            margin-bottom: var(--space-xs);
+            color: var(--color-text-primary);
+        }
+
+        .header p {
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            color: var(--color-text-secondary);
+        }
+
+        .section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .section-title {
+            font-size: var(--font-size-header);
+            line-height: var(--line-height-header);
+            font-weight: 500;
+            margin-bottom: var(--space-sm);
+            color: var(--color-text-primary);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-sm);
+        }
+
+        .select-all { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            cursor: pointer; 
+            user-select: none;
+            transform: translateY(-3px);
+        }
+        .select-all-text {
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            color: var(--color-text-primary);
+        }
+
+        .no-selection {
+            text-align: center;
+            padding: 20px;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+        }
+
+        .image-item {
+            background: var(--color-bg-page);
+            border: none; /* remove border */
+            border-radius: var(--radius-lg);
+            padding: var(--space-md) 0; /* align content to left edge */
+            margin-bottom: var(--space-sm);
+        }
+
+        /* Selected Images redesigned row */
+        .image-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .image-item.unselected { opacity: 0.5; }
+        /* Branded checkbox matching Figma (input visually hidden, styled sibling) */
+        .checkbox-wrap { position: relative; width: 20px; height: 20px; display: inline-block; }
+        .item-checkbox {
+            position: absolute; inset: 0; margin: 0; padding: 0; opacity: 0;
+            width: 20px; height: 20px; cursor: pointer;
+        }
+        .checkbox-visual {
+            width: 20px; height: 20px; border-radius: 6px;
+            border: 1px solid rgba(204,214,228,0.36);
+            background: rgba(0,150,255,0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
+        }
+        .item-checkbox:checked + .checkbox-visual {
+            background: #005bff;
+            border-color: #005bff;
+        }
+        .item-checkbox:checked + .checkbox-visual::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background-image: url('data:image/svg+xml,%3Csvg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M13.4673 4.19946C13.9555 4.68762 13.9555 5.47907 13.4673 5.96723L7.63396 11.8006C7.14581 12.2887 6.35435 12.2887 5.8662 11.8006L2.53286 8.46723C2.04471 7.97907 2.04471 7.18762 2.53286 6.69946C3.02102 6.2113 3.81248 6.2113 4.30063 6.69946L6.75008 9.14891L11.6995 4.19946C12.1877 3.7113 12.9791 3.7113 13.4673 4.19946Z" fill="white"/%3E%3C/svg%3E');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: block;
+        }
+
+        .image-preview {
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex: 0 0 44px;
+        }
+
+        .image-preview img {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .image-info-column {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0; /* Allow shrinking */
+            margin-right: 16px; /* 16px отступ от селектора масштаба */
+        }
+
+        .image-name {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            font-weight: 400;
+            color: var(--color-text-primary);
+        }
+
+        .image-meta {
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+        }
+
+
+
+        .image-size {
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+        }
+
+        .image-stats { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+            min-width: 85px; /* Уменьшено для большего места названию файла */
+            flex-shrink: 0; /* Не сжимается */
+            justify-content: flex-end; /* Align content to the right */
+        }
+
+        .image-item.processing {
+            opacity: 0.6;
+        }
+
+
+
+        .image-info {
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .settings-group {
+            margin-bottom: 24px; /* 24px between different blocks */
+        }
+
+        /* Remove any border/shadow around the range group specifically */
+        .range-group,
+        .range-group * {
+            box-shadow: none !important;
+        }
+        .range-group {
+            border: none !important;
+            background: transparent !important;
+            /* stretch to full plugin width (remove body horizontal padding) */
+            margin-left: calc(-1 * var(--space-lg));
+            margin-right: calc(-1 * var(--space-lg));
+            padding-left: var(--space-lg);
+            padding-right: var(--space-lg);
+            display: block; /* Keep normal block layout for label spacing */
+        }
+
+        /* Style slider and percentage within wide-group */
+        .wide-group .quality-slider,
+        .wide-group .quality-value {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .wide-group .quality-slider {
+            width: calc(100% - 50px); /* Leave space for percentage */
+            margin-right: var(--space-sm);
+        }
+
+        .wide-group .quality-value {
+            width: 40px;
+            text-align: right;
+        }
+
+        /* Custom spacing for Image Quality block only - reduce from 12px to 0px */
+        .wide-group:has(.quality-slider) label {
+            margin-bottom: 0px !important;
+        }
+
+        /* Custom spacing between Image Quality and Format/Scale - reduce to 8px */
+        .wide-group:has(.quality-slider) {
+            margin-bottom: 8px !important;
+        }
+        /* Apply same full-width treatment to other controls */
+        .wide-group,
+        .wide-group * { box-shadow: none !important; }
+        .wide-group { 
+            border: none !important; 
+            background: transparent !important; 
+            margin-left: calc(-1 * var(--space-lg)); 
+            margin-right: calc(-1 * var(--space-lg)); 
+            padding-left: var(--space-lg); 
+            padding-right: var(--space-lg);
+        }
+
+        .settings-group label {
+            display: block;
+            font-size: 14px; /* Onest 14 */
+            line-height: 20px; /* /20 */
+            font-weight: 400; /* Regular */
+            margin-bottom: 12px; /* 12px between title and control */
+            color: var(--color-text-primary);
+        }
+
+        .settings-group input,
+        .settings-group select {
+            width: 100%;
+            height: var(--control-height);
+            padding: 10px 16px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            background: #ffffff;
+            color: var(--color-text-primary);
+            font-family: 'Onest', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-size: 14px; /* Onest 14 */
+            line-height: 20px; /* /20 */
+            font-weight: 400; /* Regular */
+        }
+
+        /* Custom dropdown arrows via wrapper to ensure consistent rendering */
+        .select-wrapper {
+            position: relative;
+            display: block;
+            width: 100%;
+        }
+        .select-wrapper select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            padding-right: 36px; /* keep text clear of the icon */
+        }
+        /* Chevron as SVG overlay */
+        .select-wrapper::after {
+            content: '';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            pointer-events: none;
+            background-image: url('data:image/svg+xml,%3Csvg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M3.4138 5.65088C3.92694 5.18906 4.7173 5.23065 5.17913 5.74379L8.00001 8.87811L10.8209 5.74379C11.2827 5.23065 12.0731 5.18906 12.5862 5.65088C13.0994 6.1127 13.141 6.90307 12.6791 7.4162L8.92913 11.5829C8.69207 11.8463 8.35437 11.9967 8.00001 11.9967C7.64565 11.9967 7.30795 11.8463 7.07089 11.5829L3.32089 7.4162C2.85907 6.90307 2.90067 6.1127 3.4138 5.65088Z" fill="%23666666"/%3E%3C/svg%3E');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .settings-group input:focus,
+        .settings-group input:focus-visible,
+        .settings-group input:active,
+        .settings-group select:focus,
+        .settings-group select:focus-visible,
+        .settings-group select:active {
+            outline: none;
+            border-color: var(--color-border);
+            box-shadow: none;
+        }
+
+
+
+        .quality-slider {
+            flex: 1;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 !important;
+            margin: 0 !important; /* Force zero margin to match other inputs */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            height: 12px; /* track thickness 12px */
+            border-radius: 100px;
+            background: var(--color-bg-primary); /* #F5F7FA */
+            outline: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            /* Remove any potential browser borders */
+            -webkit-border-radius: 100px;
+            -moz-border-radius: 100px;
+        }
+
+        /* Additional focus and active state border removal */
+        .quality-slider:focus,
+        .quality-slider:active,
+        .quality-slider:focus-visible {
+            outline: none !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        /* WebKit/Blink thumb */
+        .quality-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--color-bg-brand);
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            cursor: pointer;
+            /* center the thumb over 12px track: (20-12)/2 = 4px */
+            margin-top: -4px;
+        }
+
+        /* WebKit track */
+        .quality-slider::-webkit-slider-runnable-track {
+            height: 12px;
+            border-radius: 100px;
+            background: var(--color-bg-primary);
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0;
+        }
+
+        /* Firefox track + thumb */
+        .quality-slider::-moz-range-track {
+            height: 12px;
+            border-radius: 100px;
+            background: var(--color-bg-primary);
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0;
+        }
+        
+        .quality-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--color-bg-brand);
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            cursor: pointer;
+            /* center over 12px track */
+            transform: translateY(-4px);
+        }
+
+        /* Microsoft Edge/IE track and thumb */
+        .quality-slider::-ms-track {
+            background: transparent;
+            border-color: transparent !important;
+            border-width: 0 !important;
+            color: transparent;
+            height: 12px;
+            outline: none !important;
+            padding: 0 !important;
+            margin: 0;
+        }
+
+        .quality-slider::-ms-fill-lower,
+        .quality-slider::-ms-fill-upper {
+            background: var(--color-bg-primary);
+            border-radius: 100px;
+            border: none !important;
+            outline: none !important;
+            padding: 0 !important;
+            margin: 0;
+        }
+
+        .quality-slider::-ms-thumb {
+            background: var(--color-bg-brand);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            margin-top: 0;
+        }
+
+        .quality-value {
+            min-width: 40px;
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            color: var(--color-text-secondary);
+        }
+
+        /* Remove hover/focus highlight for range slider */
+        .settings-group input[type="range"] {
+            outline: none;
+        }
+        .settings-group input[type="range"]:hover,
+        .settings-group input[type="range"]:focus,
+        .settings-group input[type="range"]:focus-visible {
+            outline: none;
+            box-shadow: none;
+            border-color: var(--color-border);
+        }
+
+        .button {
+            width: 100%;
+            height: var(--control-height);
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-family: 'Onest', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-size: var(--font-size-body);
+            line-height: var(--line-height-body);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .button-primary {
+            background: var(--color-bg-brand);
+            color: var(--color-text-onbrand);
+        }
+
+        .button-primary:hover:not(:disabled) {
+            filter: brightness(0.95);
+        }
+
+        .button-secondary {
+            background: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            border: 1px solid transparent;
+        }
+
+        .button-secondary:hover:not(:disabled) {
+            filter: brightness(0.98);
+        }
+
+        .button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-sm);
+            margin-top: var(--space-sm);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--color-bg-primary);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: var(--space-sm) 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--color-bg-brand);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .results {
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-md);
+            margin-top: var(--space-sm);
+        }
+
+        .size-comparison {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: var(--space-sm);
+            align-items: center;
+            margin-bottom: var(--space-sm);
+        }
+
+        .size-info {
+            text-align: center;
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+        }
+
+        .size-label {
+            color: var(--color-text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .size-value {
+            font-weight: 500;
+        }
+
+        .original-size {
+            color: var(--color-text-secondary);
+        }
+
+        .compressed-size {
+            color: var(--color-text-positive);
+        }
+
+        .compression-ratio {
+            color: var(--color-text-positive);
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid rgba(29, 237, 98, 0.3);
+        }
+
+        .arrow {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .error {
+            background: #ffe5e5;
+            color: #a40000;
+            padding: 8px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            margin: var(--space-sm) 0;
+        }
+
+        .success {
+            background: #e8fff1;
+            color: #0b6b3a;
+            padding: 8px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-caption);
+            line-height: var(--line-height-caption);
+            margin: var(--space-sm) 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Two-column grid for Format + Scale */
+        .settings-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-sm);
+            margin-bottom: 24px; /* Same spacing as settings-group */
+        }
+
+        /* Button icons removed; text-only buttons */
+
+        /* Footer buttons (Export + Refresh) */
+        .footer-buttons {
+            display: flex;
+            gap: var(--space-sm);
+            position: fixed;
+            left: var(--space-lg);
+            right: var(--space-lg);
+            bottom: 16px; /* requested 16px from bottom */
+            background: transparent;
+            z-index: 10;
+        }
+        .footer-buttons .button { flex: 1; }
+        
+        /* Specific button widths */
+        .footer-buttons #refreshBtn { 
+            flex: 0 0 55px; /* Fixed width for refresh button */
+            min-width: 55px;
+            max-width: 55px;
+            justify-content: center; /* Center the icon */
+        }
+        
+        .footer-buttons #primaryActionBtn { 
+            flex: 1; /* Takes remaining space */
+        }
+
+        /* Scale selector styles */
+        .scale-selector-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .scale-selector-button {
+            width: 100%;
+            height: var(--control-height);
+            padding: 10px 16px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            background: #ffffff;
+            color: var(--color-text-primary);
+            font-family: 'Onest', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            line-height: 20px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .scale-selector-button:hover {
+            border-color: var(--color-bg-brand);
+        }
+        
+        .scale-selector-button:focus {
+            outline: none;
+            border-color: var(--color-bg-brand);
+        }
+        
+        .scale-arrow {
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        
+        .scale-arrow.rotated {
+            transform: rotate(180deg);
+        }
+        
+        .scale-popup {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0px 0px 14px 0px rgba(0,0,0,0.15);
+            padding: 16px;
+            margin-top: 4px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+        }
+        
+        .scale-popup.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .scale-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s ease;
+            border-radius: 6px;
+            margin: 0 -8px;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+        
+        .scale-option:hover {
+            background-color: var(--color-bg-primary);
+        }
+        
+        .scale-option:not(:last-child) {
+            margin-bottom: 4px;
+        }
+        
+        .scale-option-text {
+            font-size: 12px;
+            line-height: 16px;
+            color: var(--color-text-primary);
+            font-weight: 400;
+        }
+        
+        /* Ensure checkboxes in scale popup match the design */
+        .scale-option .checkbox-wrap {
+            width: 20px;
+            height: 20px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .scale-option .scale-checkbox {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .scale-option .checkbox-visual {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            border: 1px solid rgba(204,214,228,0.36);
+            background: rgba(0,150,255,0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
+        }
+        
+        .scale-option .scale-checkbox:checked + .checkbox-visual {
+            background: #005bff;
+            border-color: #005bff;
+        }
+        
+        .scale-option .scale-checkbox:checked + .checkbox-visual::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background-image: url('data:image/svg+xml,%3Csvg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M13.4673 4.19946C13.9555 4.68762 13.9555 5.47907 13.4673 5.96723L7.63396 11.8006C7.14581 12.2887 6.35435 12.2887 5.8662 11.8006L2.53286 8.46723C2.04471 7.97907 2.04471 7.18762 2.53286 6.69946C3.02102 6.2113 3.81248 6.2113 4.30063 6.69946L6.75008 9.14891L11.6995 4.19946C12.1877 3.7113 12.9791 3.7113 13.4673 4.19946Z" fill="white"/%3E%3C/svg%3E');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: block;
+        }
+
+        /* Scanning process banner styles */
+        .scanning-banner {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: var(--radius-lg);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: fixed;
+            left: var(--space-lg);
+            right: var(--space-lg);
+            bottom: calc(16px + var(--control-height) + 16px); /* 16px кнопки + высота кнопки + 16px отступ */
+            z-index: 5;
+            box-sizing: border-box;
+        }
+
+        .scanning-banner.hidden {
+            display: none;
+        }
+
+        .scanning-spinner {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            /* Принудительное включение GPU acceleration для плавной анимации */
+            will-change: transform;
+            transform: translateZ(0);
+            transform-origin: center center;
+            /* Более медленная и плавная анимация */
+            animation: spin 2s linear infinite;
+            /* Улучшаем рендеринг для устранения рывков */
+            backface-visibility: hidden;
+            /* Сглаживание для четкости */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .scanning-text {
+            color: #ffffff;
+            font-size: 16px;
+            line-height: 20px;
+            font-weight: 400;
+            white-space: nowrap;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            25% {
+                transform: rotate(90deg);
+            }
+            50% {
+                transform: rotate(180deg);
+            }
+            75% {
+                transform: rotate(270deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* State for dimming existing images during scan */
+        .images-dimmed .image-item {
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Individual scale selector for each image */
+        .individual-scale-selector {
+            position: relative;
+            width: 85px; /* Increased width to fit "3 scales" text */
+            flex-shrink: 0; /* Don't shrink this element */
+        }
+        
+        .individual-scale-button {
+            height: 24px;
+            padding: 2px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: #ffffff;
+            color: var(--color-text-primary);
+            font-family: 'Onest', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            line-height: 16px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            gap: 2px;
+            min-width: 75px; /* Increased to fit "3 scales" text */
+            width: 100%; /* Take full width of container */
+        }
+        
+        .individual-scale-button:hover {
+            border-color: var(--color-bg-brand);
+        }
+        
+        .individual-scale-button:focus {
+            outline: none;
+            border-color: var(--color-bg-brand);
+        }
+        
+        .individual-scale-arrow {
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+            width: 12px;
+            height: 12px;
+        }
+        
+        .individual-scale-arrow.rotated {
+            transform: rotate(180deg);
+        }
+        
+        .individual-scale-popup {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0px 0px 14px 0px rgba(0,0,0,0.15);
+            padding: 16px;
+            margin-top: 4px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+            min-width: 160px;
+        }
+        
+        .individual-scale-popup.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        /* Style checkboxes in individual scale selectors */
+        .individual-scale-checkbox {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .individual-scale-checkbox:checked + .checkbox-visual {
+            background: #005bff;
+            border-color: #005bff;
+        }
+
+        .individual-scale-checkbox:checked + .checkbox-visual::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background-image: url('data:image/svg+xml,%3Csvg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M13.4673 4.19946C13.9555 4.68762 13.9555 5.47907 13.4673 5.96723L7.63396 11.8006C7.14581 12.2887 6.35435 12.2887 5.8662 11.8006L2.53286 8.46723C2.04471 7.97907 2.04471 7.18762 2.53286 6.69946C3.02102 6.2113 3.81248 6.2113 4.30063 6.69946L6.75008 9.14891L11.6995 4.19946C12.1877 3.7113 12.9791 3.7113 13.4673 4.19946Z" fill="white"/%3E%3C/svg%3E');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗜️ Image Compressor</h1>
+        <p>Compress images to reduce file size</p>
+    </div>
+
+        <div class="section">
+            <div class="section-title">Settings</div>
+            
+            <div class="settings-group wide-group">
+                <label for="maxSize">Maximum file size (MB)</label>
+                <input type="number" id="maxSize" value="1" min="0.1" max="10" step="0.1" />
+            </div>
+
+            <div class="settings-group wide-group">
+                <label for="quality">Image quality</label>
+                <input type="range" id="quality" class="quality-slider" min="10" max="100" value="80" />
+                <span class="quality-value" id="qualityValue">80%</span>
+            </div>
+
+            <div class="settings-grid-2">
+                <div class="settings-group wide-group">
+                    <label for="outputFormat">Format</label>
+                    <div class="select-wrapper">
+                        <select id="outputFormat">
+                            <option value="">Keep original</option>
+                            <option value="image/jpeg">JPEG (smaller files)</option>
+                            <option value="image/png">PNG (lossless)</option>
+                            <option value="image/webp">WebP (best compression)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group wide-group">
+                    <label for="imageScale">Scale</label>
+                    <div class="scale-selector-container">
+                        <button type="button" class="scale-selector-button" id="scaleSelector">
+                            <span class="scale-selected-text" id="scaleSelectedText">1x (Original size)</span>
+                            <svg class="scale-arrow" id="scaleArrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3.4138 5.65088C3.92694 5.18906 4.7173 5.23065 5.17913 5.74379L8.00001 8.87811L10.8209 5.74379C11.2827 5.23065 12.0731 5.18906 12.5862 5.65088C13.0994 6.1127 13.141 6.90307 12.6791 7.4162L8.92913 11.5829C8.69207 11.8463 8.35437 11.9967 8.00001 11.9967C7.64565 11.9967 7.30795 11.8463 7.07089 11.5829L3.32089 7.4162C2.85907 6.90307 2.90067 6.1127 3.4138 5.65088Z" fill="#666666"/>
+                            </svg>
+                        </button>
+                        <div class="scale-popup" id="scalePopup">
+                            <div class="scale-option" data-scale="different" style="display: none;">
+                                <span class="checkbox-wrap">
+                                    <input type="checkbox" class="scale-checkbox" id="scale-different" />
+                                    <span class="checkbox-visual"></span>
+                                </span>
+                                <span class="scale-option-text">Different scales</span>
+                            </div>
+                            <div class="scale-option" data-scale="1">
+                                <span class="checkbox-wrap">
+                                    <input type="checkbox" class="scale-checkbox" id="scale-1" checked />
+                                    <span class="checkbox-visual"></span>
+                                </span>
+                                <span class="scale-option-text">1x (Original size)</span>
+                            </div>
+                            <div class="scale-option" data-scale="2">
+                                <span class="checkbox-wrap">
+                                    <input type="checkbox" class="scale-checkbox" id="scale-2" />
+                                    <span class="checkbox-visual"></span>
+                                </span>
+                                <span class="scale-option-text">2x (Double size)</span>
+                            </div>
+                            <div class="scale-option" data-scale="3">
+                                <span class="checkbox-wrap">
+                                    <input type="checkbox" class="scale-checkbox" id="scale-3" />
+                                    <span class="checkbox-visual"></span>
+                                </span>
+                                <span class="scale-option-text">3x (Triple size)</span>
+                            </div>
+                            <div class="scale-option" data-scale="0.5">
+                                <span class="checkbox-wrap">
+                                    <input type="checkbox" class="scale-checkbox" id="scale-0.5" />
+                                    <span class="checkbox-visual"></span>
+                                </span>
+                                <span class="scale-option-text">0.5x (Half size)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Hidden input to maintain compatibility -->
+                    <input type="hidden" id="imageScale" value="1" />
+                </div>
+            </div>
+
+            
+        </div>
+
+    <div class="section">
+        <div class="section-header">
+            <div class="section-title">Selected Images & Frames</div>
+            <label class="select-all">
+                <span class="checkbox-wrap">
+                    <input type="checkbox" class="item-checkbox" id="selectAll" checked />
+                    <span class="checkbox-visual"></span>
+                </span>
+                <span class="select-all-text">Select all</span>
+            </label>
+        </div>
+        <div id="imageList">
+            <div class="no-selection">
+                Select images or frames in Figma to compress them
+            </div>
+        </div>
+    </div>
+
+    <!-- Scanning banner positioned above buttons -->
+    <div class="scanning-banner hidden" id="scanningBanner">
+        <svg class="scanning-spinner" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M2.57401 7.5297C2.02579 9.17773 2.04135 10.9613 2.61825 12.5995C3.19516 14.2377 4.30062 15.6375 5.76054 16.5783C7.22045 17.5192 8.95186 17.9477 10.6821 17.7963C12.4123 17.6449 14.043 16.9223 15.3174 15.7422C16.5917 14.5622 17.4373 12.9917 17.721 11.2782C18.0047 9.5647 17.7103 7.80552 16.8842 6.27772C16.0581 4.74993 14.7473 3.54034 13.1582 2.83945C11.569 2.13856 9.79192 1.98621 8.10669 2.40638C7.52422 2.55161 6.93429 2.19715 6.78907 1.61468C6.64384 1.0322 6.9983 0.442276 7.58078 0.297048C9.73413 -0.239843 12.0049 -0.0451679 14.0354 0.850409C16.066 1.74599 17.7409 3.29158 18.7965 5.24376C19.852 7.19594 20.2282 9.44378 19.8657 11.6333C19.5032 13.8227 18.4227 15.8294 16.7944 17.3373C15.1661 18.8452 13.0824 19.7685 10.8715 19.9619C8.66072 20.1554 6.44836 19.6079 4.58291 18.4057C2.71746 17.2035 1.30493 15.4149 0.567772 13.3216C-0.169384 11.2283 -0.189272 8.94932 0.51124 6.84351C0.700727 6.27389 1.3161 5.96573 1.88572 6.15522C2.45534 6.3447 2.7635 6.96008 2.57401 7.5297Z" fill="white"/>
+        </svg>
+        <span class="scanning-text" id="scanningText">Scanning for images...</span>
+        <button class="button button-secondary" id="stopBtn" style="margin-left: 12px; padding: 8px 12px; height: auto; font-size: 12px;">Stop</button>
+    </div>
+
+    <div class="footer-buttons">
+        <button class="button button-primary" id="primaryActionBtn" data-state="compress">Compress</button>
+        <button class="button button-secondary" id="refreshBtn" title="Refresh">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4.19937 0.366117C4.68752 -0.122039 5.47898 -0.122039 5.96714 0.366117C6.45529 0.854272 6.45529 1.64573 5.96714 2.13388L5.60102 2.5H8.41659C11.8684 2.5 14.6666 5.29822 14.6666 8.75C14.6666 12.2018 11.8684 15 8.41659 15C5.89228 15 3.72012 13.5035 2.73389 11.3547C2.44593 10.7273 2.72111 9.98524 3.34854 9.69727C3.97597 9.40931 4.71804 9.68449 5.00601 10.3119C5.5998 11.6057 6.90506 12.5 8.41659 12.5C10.4877 12.5 12.1666 10.8211 12.1666 8.75C12.1666 6.67893 10.4877 5 8.41659 5H5.60102L5.96714 5.36612C6.45529 5.85427 6.45529 6.64573 5.96714 7.13388C5.47898 7.62204 4.68752 7.62204 4.19937 7.13388L1.69937 4.63388C1.21121 4.14573 1.21121 3.35427 1.69937 2.86612L4.19937 0.366117Z" fill="currentColor"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Load the image compression library -->
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <!-- Load ZIP library for exporting multiple files as archive -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    
+    <script>
+        // Get UI elements
+        const imageList = document.getElementById('imageList');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const primaryActionBtn = document.getElementById('primaryActionBtn');
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const qualitySlider = document.getElementById('quality');
+        const qualityValue = document.getElementById('qualityValue');
+        const scanningBanner = document.getElementById('scanningBanner');
+        const scanningText = document.getElementById('scanningText');
+        const stopBtn = document.getElementById('stopBtn');
+
+        let selectedImages = [];
+        let isProcessing = false;
+        window.compressedFiles = window.compressedFiles || {};
+        window.individualScales = window.individualScales || {}; // Store individual scales for each image (can be multiple)
+
+        // Update quality display
+        qualitySlider.addEventListener('input', function() {
+            qualityValue.textContent = this.value + '%';
+        });
+
+        // Scale selector functionality
+        let selectedScales = new Set(['1']); // Default to 1x selected
+        let isScalePopupOpen = false;
+        
+        const scaleSelector = document.getElementById('scaleSelector');
+        const scalePopup = document.getElementById('scalePopup');
+        const scaleArrow = document.getElementById('scaleArrow');
+        const scaleSelectedText = document.getElementById('scaleSelectedText');
+        const hiddenScaleInput = document.getElementById('imageScale');
+        
+        // Toggle scale popup
+        scaleSelector.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleScalePopup();
+        });
+        
+        // Close popup when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!scalePopup.contains(e.target) && !scaleSelector.contains(e.target)) {
+                closeScalePopup();
+            }
+        });
+        
+        // Handle checkbox changes in scale popup
+        document.querySelectorAll('.scale-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const scale = e.target.closest('.scale-option').dataset.scale;
+                
+                // If "Different" is selected, ignore
+                if (scale === 'different') {
+                    e.target.checked = false;
+                    return;
+                }
+                
+                if (e.target.checked) {
+                    selectedScales.add(scale);
+                    
+                    // Uncheck "Different" when user selects specific scales
+                    const differentCheckbox = document.getElementById('scale-different');
+                    if (differentCheckbox) differentCheckbox.checked = false;
+                    selectedScales.delete('different');
+                    
+                    // Apply this scale to all images
+                    applyScaleToAllImages(selectedScales);
+                } else {
+                    selectedScales.delete(scale);
+                    // Ensure at least one scale is selected
+                    if (selectedScales.size === 0) {
+                        selectedScales.add('1');
+                        document.getElementById('scale-1').checked = true;
+                        applyScaleToAllImages(selectedScales);
+                    } else {
+                        applyScaleToAllImages(selectedScales);
+                    }
+                }
+                
+                updateScaleDisplay();
+                updateHiddenInput();
+                
+                // Don't close popup immediately - allow multiple selections
+                // closeScalePopup();
+                
+                // Update size display for all images without rescanning
+                selectedImages.forEach((_, index) => {
+                    updateInitialSizeDisplay(index);
+                });
+            });
+        });
+        
+        function toggleScalePopup() {
+            if (isScalePopupOpen) {
+                closeScalePopup();
+            } else {
+                openScalePopup();
+            }
+        }
+        
+        function openScalePopup() {
+            isScalePopupOpen = true;
+            scalePopup.classList.add('open');
+            scaleArrow.classList.add('rotated');
+        }
+        
+        function closeScalePopup() {
+            isScalePopupOpen = false;
+            scalePopup.classList.remove('open');
+            scaleArrow.classList.remove('rotated');
+        }
+        
+        function updateScaleDisplay() {
+            const scales = Array.from(selectedScales).sort((a, b) => parseFloat(a) - parseFloat(b));
+            
+            if (scales.length === 1) {
+                const scale = scales[0];
+                const scaleText = getScaleText(scale);
+                scaleSelectedText.textContent = scaleText;
+            } else {
+                scaleSelectedText.textContent = scales.length + ' scales selected';
+            }
+        }
+        
+        function updateHiddenInput() {
+            // For compatibility, set to first selected scale
+            const firstScale = Array.from(selectedScales).sort((a, b) => parseFloat(a) - parseFloat(b))[0];
+            hiddenScaleInput.value = firstScale || '1';
+        }
+        
+        function getScaleText(scale) {
+            switch(scale) {
+                case '1': return '1x (Original size)';
+                case '2': return '2x (Double size)';
+                case '3': return '3x (Triple size)';
+                case '0.5': return '0.5x (Half size)';
+                case 'different': return 'Different scales';
+                default: return scale + 'x';
+            }
+        }
+        
+        function getIndividualScaleText(scales) {
+            if (Array.isArray(scales)) {
+                if (scales.length === 1) {
+                    const scale = scales[0];
+                    switch(scale) {
+                        case '1': return '1x';
+                        case '2': return '2x';
+                        case '3': return '3x';
+                        case '0.5': return '0.5x';
+                        default: return scale + 'x';
+                    }
+                } else {
+                    return scales.length + ' scales';
+                }
+            } else {
+                // Fallback for backward compatibility
+                switch(scales) {
+                    case '1': return '1x';
+                    case '2': return '2x';
+                    case '3': return '3x';
+                    case '0.5': return '0.5x';
+                    default: return scales + 'x';
+                }
+            }
+        }
+        
+        function getSelectedScales() {
+            return Array.from(selectedScales).map(scale => parseFloat(scale));
+        }
+        
+        // Initialize display
+        updateScaleDisplay();
+        updateHiddenInput();
+
+        // Source toggle removed: default is current view (handled in main code)
+
+        // Handle refresh button
+        refreshBtn.addEventListener('click', () => {
+            console.log('Refresh button clicked');
+            showScanningBanner('Refreshing...');
+            
+            // Clear any existing data
+            selectedImages = [];
+            window.compressedFiles = {};
+            window.uiSelection = {};
+            window.individualScales = {};
+            
+            // Reset UI state
+            if (primaryActionBtn) {
+                primaryActionBtn.dataset.state = 'compress';
+                primaryActionBtn.textContent = 'Compress';
+            }
+            
+            requestSelectedImages();
+        });
+
+        // Handle stop button
+        if (stopBtn) {
+            stopBtn.addEventListener('click', () => {
+                console.log('Stop button clicked');
+                parent.postMessage({ 
+                    pluginMessage: { 
+                        type: 'stop-processing'
+                    } 
+                }, '*');
+                hideScanningBanner();
+                showMessage('Processing stopped', 'success');
+            });
+        }
+
+        // Select all toggle
+        selectAllCheckbox.addEventListener('change', (e) => {
+            setAllSelected(e.target.checked);
+        });
+
+        // Primary action: Compress → Export
+        primaryActionBtn.addEventListener('click', async () => {
+            const state = primaryActionBtn.dataset.state || 'compress';
+            if (state === 'compress') {
+                // compress all items
+                if (selectedImages.length === 0) {
+                    showMessage('Select images or frames first', 'error');
+                    return;
+                }
+                for (let i = 0; i < selectedImages.length; i++) {
+                    if (window.uiSelection && window.uiSelection[i] === false) continue;
+                    await compressImage(i);
+                }
+                primaryActionBtn.dataset.state = 'export';
+                primaryActionBtn.textContent = 'Export';
+            } else {
+                // Safety: if nothing is compressed yet (e.g., after rescan), compress selected then export
+                const hasCompressed = window.compressedFiles && Object.keys(window.compressedFiles).length > 0;
+                if (!hasCompressed) {
+                    for (let i = 0; i < selectedImages.length; i++) {
+                        if (window.uiSelection && window.uiSelection[i] === false) continue;
+                        await compressImage(i);
+                    }
+                }
+                exportAllCompressed();
+            }
+        });
+
+        async function exportAllCompressed() {
+            const outputFormat = document.getElementById('outputFormat').value;
+            let extension = 'png';
+            if (outputFormat === 'image/jpeg') extension = 'jpg';
+            else if (outputFormat === 'image/webp') extension = 'webp';
+            else if (outputFormat === 'image/png') extension = 'png';
+
+            // Ensure selected items are compressed
+            for (let i = 0; i < selectedImages.length; i++) {
+                if (window.uiSelection && window.uiSelection[i] === false) continue;
+                if (!window.compressedFiles[i]) {
+                    await compressImage(i);
+                }
+            }
+
+            const filesMap = window.compressedFiles || {};
+            const selectedIndices = selectedImages
+                .map((_, i) => i)
+                .filter(i => !(window.uiSelection && window.uiSelection[i] === false) && filesMap[i]);
+
+            if (selectedIndices.length === 0) {
+                showMessage('Nothing to export yet', 'error');
+                return;
+            }
+
+            // Collect all files from all selected images and scales
+            const allFiles = [];
+            const usedNames = new Set();
+            
+            selectedIndices.forEach((idx) => {
+                const compressedFilesForImage = filesMap[idx];
+                if (!compressedFilesForImage) return;
+                
+                const originalName = (selectedImages[idx] && selectedImages[idx].name) || 'image';
+                const sanitizedPath = sanitizePath(originalName);
+                const nameWithoutExt = sanitizedPath.replace(/\.[^/.]+$/, "");
+                
+                // If compressedFilesForImage is an object (multiple scales)
+                if (typeof compressedFilesForImage === 'object' && !compressedFilesForImage.size) {
+                    Object.entries(compressedFilesForImage).forEach(([scale, file]) => {
+                        const scaleStr = scale === '0.5' ? '05x' : scale + 'x';
+                        let filename = nameWithoutExt + '_' + scaleStr + '.' + extension;
+                        let counter = 1;
+                        
+                        // Ensure unique filename
+                        while (usedNames.has(filename)) {
+                            const counterStr = counter.toString().padStart(2, '0');
+                            filename = nameWithoutExt + '_' + scaleStr + '_' + counterStr + '.' + extension;
+                            counter++;
+                        }
+                        
+                        usedNames.add(filename);
+                        allFiles.push({ filename, file });
+                    });
+                } else {
+                    // Single file (old format compatibility)
+                    let filename = nameWithoutExt + '_compressed.' + extension;
+                    let counter = 1;
+                    
+                    while (usedNames.has(filename)) {
+                        const counterStr = counter.toString().padStart(2, '0');
+                        filename = nameWithoutExt + '_compressed_' + counterStr + '.' + extension;
+                        counter++;
+                    }
+                    
+                    usedNames.add(filename);
+                    allFiles.push({ filename, file: compressedFilesForImage });
+                }
+            });
+
+            if (allFiles.length === 0) {
+                showMessage('No files to export', 'error');
+                return;
+            }
+
+            // If multiple files, create a zip
+            if (allFiles.length > 1 && window.JSZip) {
+                const zip = new JSZip();
+                
+                allFiles.forEach(({ filename, file }) => {
+                    zip.file(filename, file);
+                });
+                
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'compressed_assets.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showMessage('Archive with ' + allFiles.length + ' files downloaded', 'success');
+                return;
+            }
+
+            // Single file: download directly
+            const { filename, file } = allFiles[0];
+            const url = URL.createObjectURL(file);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('File downloaded', 'success');
+        }
+
+        function sanitizePath(name) {
+            // Keep slashes as folder separators, but preserve Cyrillic characters
+            return name
+                .split('/')
+                .map(seg => seg.trim()
+                    // Replace only truly unsafe filename characters, keep Cyrillic letters
+                    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '-')
+                    // Remove leading/trailing dots and spaces
+                    .replace(/^[.\s]+|[.\s]+$/g, '')
+                )
+                .filter(Boolean)
+                .join('/');
+        }
+
+        // Request selected images from Figma
+        function requestSelectedImages() {
+            console.log('Requesting images from Figma...');
+            
+            try {
+                const scales = getSelectedScales();
+                const primaryScale = scales[0] || 1; // Use first selected scale for UI display
+                
+                console.log('Selected scales:', scales);
+                console.log('Primary scale:', primaryScale);
+                
+                showScanningBanner('Scanning for images...');
+                
+                parent.postMessage({ 
+                    pluginMessage: { 
+                        // auto: if there is a selection, use it; else scan the page
+                        type: 'get-images-auto',
+                        scale: primaryScale,
+                        allScales: scales // Send all selected scales to main code
+                        // useCurrentView omitted → defaults to rendered view in main code
+                    } 
+                }, '*');
+                
+                // Set a timeout in case the request never returns
+                setTimeout(() => {
+                    if (selectedImages.length === 0) {
+                        hideScanningBanner();
+                        showMessage('Scan took too long. Try selecting specific elements or check the console for errors.', 'error');
+                    }
+                }, 60000); // 60 second timeout for full page scan
+                
+            } catch (error) {
+                console.error('Error requesting images:', error);
+                hideScanningBanner();
+                showMessage('Error requesting images: ' + error.message, 'error');
+            }
+        }
+
+        // Listen for messages from the main plugin code
+        window.onmessage = async (event) => {
+            const { type, images, message, nodeName, error } = event.data.pluginMessage;
+            
+            if (type === 'plugin-ready') {
+                requestSelectedImages();
+            }
+            
+            if (type === 'selected-images') {
+                selectedImages = images;
+                displayImages();
+                hideScanningBanner();
+            }
+            
+            if (type === 'error') {
+                showMessage(message, 'error');
+                hideScanningBanner();
+            }
+            
+            if (type === 'scan-progress') {
+                showScanningBanner(message);
+            }
+            
+            if (type === 'image-processing-error') {
+                const errorMsg = 'Error processing "' + nodeName + '": ' + error;
+                console.error(errorMsg);
+                showMessage(errorMsg, 'error');
+            }
+            
+            if (type === 'replace-success' || type === 'copy-success') {
+                showMessage(message, 'success');
+                hideScanningBanner();
+                // Refresh the image list after successful operation
+                setTimeout(() => {
+                    requestSelectedImages();
+                }, 1000);
+            }
+            
+            if (type === 'processing-stopped') {
+                hideScanningBanner();
+                showMessage(message, 'success');
+            }
+        };
+
+        // Display the selected images
+        function displayImages() {
+            if (selectedImages.length === 0) {
+                imageList.innerHTML = `
+                    <div class="no-selection">
+                        Select images or frames in Figma to compress them
+                    </div>
+                `;
+                return;
+            }
+
+            // Reset state for new list (fresh scan)
+            window.compressedFiles = {};
+            window.uiSelection = {};
+            
+            // Initialize individual scales from Figma export settings
+            selectedImages.forEach((img, index) => {
+                const exportScales = img.exportScales || [1];
+                window.individualScales[index] = exportScales.map(scale => scale.toString()); // Store as array of strings
+            });
+            
+            if (primaryActionBtn) {
+                primaryActionBtn.dataset.state = 'compress';
+                primaryActionBtn.textContent = 'Compress';
+            }
+            if (selectAllCheckbox) selectAllCheckbox.checked = true;
+
+            // cleanup old previews
+            if (window.previewUrls) {
+                Object.values(window.previewUrls).forEach((url) => URL.revokeObjectURL(url));
+            }
+            window.previewUrls = {};
+            if (!window.uiSelection) window.uiSelection = {};
+
+            imageList.innerHTML = selectedImages.map((img, index) => {
+                const checked = window.uiSelection[index] !== false; // default selected
+                const individualScale = window.individualScales[index] || '1'; // default to 1x
+                return '<div class="image-item' + (checked ? '' : ' unselected') + '" id="image-' + index + '">' +
+                    '<div class="image-row">' +
+                        '<span class="checkbox-wrap">' +
+                            '<input type="checkbox" class="item-checkbox" id="cb-' + index + '" ' + (checked ? 'checked' : '') + ' />' +
+                            '<span class="checkbox-visual"></span>' +
+                        '</span>' +
+                        '<div class="image-preview">' +
+                            '<img id="thumb-' + index + '" alt="preview" />' +
+                        '</div>' +
+                        '<div class="image-info-column">' +
+                            '<div class="image-name">' + img.name + '</div>' +
+                            '<div class="image-size" id="size-' + index + '"></div>' +
+                        '</div>' +
+                        '<div class="image-stats">' +
+                            '<div class="individual-scale-selector">' +
+                                '<button type="button" class="individual-scale-button" id="individualScale-' + index + '">' +
+                                    '<span class="individual-scale-text" id="individualScaleText-' + index + '">' + getIndividualScaleText(individualScale) + '</span>' +
+                                    '<svg class="individual-scale-arrow" id="individualScaleArrow-' + index + '" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                                        '<path d="M3.4138 5.65088C3.92694 5.18906 4.7173 5.23065 5.17913 5.74379L8.00001 8.87811L10.8209 5.74379C11.2827 5.23065 12.0731 5.18906 12.5862 5.65088C13.0994 6.1127 13.141 6.90307 12.6791 7.4162L8.92913 11.5829C8.69207 11.8463 8.35437 11.9967 8.00001 11.9967C7.64565 11.9967 7.30795 11.8463 7.07089 11.5829L3.32089 7.4162C2.85907 6.90307 2.90067 6.1127 3.4138 5.65088Z" fill="#666666"/>' +
+                                    '</svg>' +
+                                '</button>' +
+                                '<div class="individual-scale-popup" id="individualScalePopup-' + index + '">' +
+                                    '<div class="scale-option" data-scale="1" data-index="' + index + '">' +
+                                        '<span class="checkbox-wrap">' +
+                                            '<input type="checkbox" class="individual-scale-checkbox" id="individualScale-' + index + '-1" value="1" ' + (individualScale.includes('1') ? 'checked' : '') + ' />' +
+                                            '<span class="checkbox-visual"></span>' +
+                                        '</span>' +
+                                        '<span class="scale-option-text">1x (Original size)</span>' +
+                                    '</div>' +
+                                    '<div class="scale-option" data-scale="2" data-index="' + index + '">' +
+                                        '<span class="checkbox-wrap">' +
+                                            '<input type="checkbox" class="individual-scale-checkbox" id="individualScale-' + index + '-2" value="2" ' + (individualScale.includes('2') ? 'checked' : '') + ' />' +
+                                            '<span class="checkbox-visual"></span>' +
+                                        '</span>' +
+                                        '<span class="scale-option-text">2x (Double size)</span>' +
+                                    '</div>' +
+                                    '<div class="scale-option" data-scale="3" data-index="' + index + '">' +
+                                        '<span class="checkbox-wrap">' +
+                                            '<input type="checkbox" class="individual-scale-checkbox" id="individualScale-' + index + '-3" value="3" ' + (individualScale.includes('3') ? 'checked' : '') + ' />' +
+                                            '<span class="checkbox-visual"></span>' +
+                                        '</span>' +
+                                        '<span class="scale-option-text">3x (Triple size)</span>' +
+                                    '</div>' +
+                                    '<div class="scale-option" data-scale="0.5" data-index="' + index + '">' +
+                                        '<span class="checkbox-wrap">' +
+                                            '<input type="checkbox" class="individual-scale-checkbox" id="individualScale-' + index + '-05" value="0.5" ' + (individualScale.includes('0.5') ? 'checked' : '') + ' />' +
+                                            '<span class="checkbox-visual"></span>' +
+                                        '</span>' +
+                                        '<span class="scale-option-text">0.5x (Half size)</span>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="progress-bar hidden" id="progress-' + index + '">' +
+                        '<div class="progress-fill" id="progress-fill-' + index + '"></div>' +
+                    '</div>' +
+                    '<div id="results-' + index + '"></div>' +
+                '</div>';
+            }).join('');
+
+            // attach previews and update initial size display
+            selectedImages.forEach((img, index) => {
+                try {
+                    const url = URL.createObjectURL(new Blob([new Uint8Array(img.imageData)], { type: 'image/png' }));
+                    window.previewUrls[index] = url;
+                    const el = document.getElementById('thumb-' + index);
+                    if (el) el.src = url;
+                } catch (e) {
+                    // ignore preview errors
+                }
+                
+                // Update initial size display based on selected scales
+                updateInitialSizeDisplay(index);
+            });
+
+            // attach checkbox handlers
+            selectedImages.forEach((_, index) => {
+                const cb = document.getElementById('cb-' + index);
+                if (!cb) return;
+                cb.addEventListener('change', (e) => {
+                    const isChecked = e.target.checked;
+                    window.uiSelection[index] = isChecked;
+                    const container = document.getElementById('image-' + index);
+                    if (container) {
+                        if (isChecked) container.classList.remove('unselected');
+                        else container.classList.add('unselected');
+                    }
+                    updateSelectAllIndicator();
+                });
+            });
+
+            // attach individual scale selector handlers
+            selectedImages.forEach((_, index) => {
+                const scaleButton = document.getElementById('individualScale-' + index);
+                const scalePopup = document.getElementById('individualScalePopup-' + index);
+                const scaleArrow = document.getElementById('individualScaleArrow-' + index);
+                
+                if (!scaleButton || !scalePopup || !scaleArrow) return;
+                
+                // Toggle popup
+                scaleButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    // Close all other popups
+                    selectedImages.forEach((_, otherIndex) => {
+                        if (otherIndex !== index) {
+                            const otherPopup = document.getElementById('individualScalePopup-' + otherIndex);
+                            const otherArrow = document.getElementById('individualScaleArrow-' + otherIndex);
+                            if (otherPopup && otherArrow) {
+                                otherPopup.classList.remove('open');
+                                otherArrow.classList.remove('rotated');
+                            }
+                        }
+                    });
+                    
+                    // Toggle current popup
+                    const isOpen = scalePopup.classList.contains('open');
+                    if (isOpen) {
+                        scalePopup.classList.remove('open');
+                        scaleArrow.classList.remove('rotated');
+                    } else {
+                        scalePopup.classList.add('open');
+                        scaleArrow.classList.add('rotated');
+                    }
+                });
+                
+                // Handle checkbox changes
+                const checkboxes = scalePopup.querySelectorAll('.individual-scale-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => {
+                        const scale = e.target.value;
+                        if (!window.individualScales[index]) {
+                            window.individualScales[index] = [];
+                        }
+                        
+                        if (e.target.checked) {
+                            // Add scale if not already present
+                            if (!window.individualScales[index].includes(scale)) {
+                                window.individualScales[index].push(scale);
+                            }
+                        } else {
+                            // Remove scale
+                            const scaleIndex = window.individualScales[index].indexOf(scale);
+                            if (scaleIndex > -1) {
+                                window.individualScales[index].splice(scaleIndex, 1);
+                            }
+                            
+                            // Ensure at least one scale is selected
+                            if (window.individualScales[index].length === 0) {
+                                window.individualScales[index] = ['1'];
+                                const defaultCheckbox = scalePopup.querySelector('input[value="1"]');
+                                if (defaultCheckbox) defaultCheckbox.checked = true;
+                            }
+                        }
+                        
+                        // Update button text
+                        const scaleText = document.getElementById('individualScaleText-' + index);
+                        if (scaleText) {
+                            scaleText.textContent = getIndividualScaleText(window.individualScales[index]);
+                        }
+                        
+                        // Update size display to reflect new scales
+                        updateInitialSizeDisplay(index);
+                        
+                        // Update global scale selector to show "Different" if needed
+                        updateGlobalScaleState();
+                    });
+                });
+            });
+
+            // Close all individual scale popups when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.individual-scale-selector')) {
+                    selectedImages.forEach((_, index) => {
+                        const popup = document.getElementById('individualScalePopup-' + index);
+                        const arrow = document.getElementById('individualScaleArrow-' + index);
+                        if (popup && arrow) {
+                            popup.classList.remove('open');
+                            arrow.classList.remove('rotated');
+                        }
+                    });
+                }
+            });
+
+            updateSelectAllIndicator();
+            updateGlobalScaleState(); // Update global scale state based on individual scales
+        }
+
+        function setAllSelected(checked) {
+            if (!window.uiSelection) window.uiSelection = {};
+            for (let i = 0; i < selectedImages.length; i++) {
+                window.uiSelection[i] = checked;
+                const cb = document.getElementById('cb-' + i);
+                if (cb) cb.checked = checked;
+                const container = document.getElementById('image-' + i);
+                if (container) {
+                    if (checked) container.classList.remove('unselected');
+                    else container.classList.add('unselected');
+                }
+            }
+            updateSelectAllIndicator();
+        }
+
+        function updateSelectAllIndicator() {
+            if (!selectAllCheckbox) return;
+            const allSelected = selectedImages.length > 0 && selectedImages.every((_, i) => window.uiSelection && window.uiSelection[i] !== false);
+            selectAllCheckbox.checked = allSelected;
+        }
+
+        function updateGlobalScaleState() {
+            if (selectedImages.length === 0) return;
+            
+            // Get all individual scales (flatten arrays and get unique values)
+            const allScales = [];
+            selectedImages.forEach((_, index) => {
+                const scales = window.individualScales[index] || ['1'];
+                allScales.push(...scales);
+            });
+            const uniqueScales = [...new Set(allScales)];
+            
+            // Check if all images have exactly the same scale selections
+            const allImageScalesEqual = selectedImages.every((_, index) => {
+                const currentScales = window.individualScales[index] || ['1'];
+                const firstImageScales = window.individualScales[0] || ['1'];
+                return currentScales.length === firstImageScales.length && 
+                       currentScales.every(scale => firstImageScales.includes(scale));
+            });
+            
+            const differentOption = document.querySelector('[data-scale="different"]');
+            const differentCheckbox = document.getElementById('scale-different');
+            
+            if (!allImageScalesEqual) {
+                // Show "Different" and check it
+                if (differentOption) differentOption.style.display = '';
+                if (differentCheckbox) {
+                    differentCheckbox.checked = true;
+                    selectedScales.clear();
+                    selectedScales.add('different');
+                }
+                
+                // Uncheck all other scales
+                document.querySelectorAll('.scale-checkbox:not(#scale-different)').forEach(cb => {
+                    cb.checked = false;
+                });
+                
+                updateScaleDisplay();
+            } else {
+                // Hide "Different" option
+                if (differentOption) differentOption.style.display = 'none';
+                if (differentCheckbox) differentCheckbox.checked = false;
+                
+                // Set the scales from the first image as selected
+                const firstImageScales = window.individualScales[0] || ['1'];
+                selectedScales.clear();
+                firstImageScales.forEach(scale => selectedScales.add(scale));
+                
+                // Update checkboxes
+                document.querySelectorAll('.scale-checkbox').forEach(cb => {
+                    const option = cb.closest('.scale-option');
+                    if (option && firstImageScales.includes(option.dataset.scale)) {
+                        cb.checked = true;
+                    } else if (cb.id !== 'scale-different') {
+                        cb.checked = false;
+                    }
+                });
+                
+                updateScaleDisplay();
+            }
+        }
+
+        function applyScaleToAllImages(scales) {
+            if (selectedImages.length === 0) return;
+            
+            // Apply all selected scales to all images
+            const scalesArray = Array.from(scales);
+            
+            selectedImages.forEach((_, index) => {
+                window.individualScales[index] = [...scalesArray];
+                
+                // Update individual scale selector UI
+                const scaleText = document.getElementById('individualScaleText-' + index);
+                if (scaleText) {
+                    scaleText.textContent = getIndividualScaleText(window.individualScales[index]);
+                }
+                
+                // Update checkboxes
+                const checkboxes = document.querySelectorAll(`#individualScalePopup-${index} .individual-scale-checkbox`);
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = scalesArray.includes(checkbox.value);
+                });
+                
+                // Update size display to reflect new scales
+                updateInitialSizeDisplay(index);
+            });
+        }
+
+        // Compress a single image in all selected scales
+        async function compressImage(index) {
+            if (isProcessing) return;
+            
+            const imageData = selectedImages[index];
+            const imageElement = document.getElementById('image-' + index);
+            const progressBar = document.getElementById('progress-' + index);
+            const progressFill = document.getElementById('progress-fill-' + index);
+            const resultsDiv = document.getElementById('results-' + index);
+            
+            try {
+                isProcessing = true;
+                imageElement.classList.add('processing');
+                progressBar.classList.remove('hidden');
+                resultsDiv.innerHTML = '';
+
+                // Use individual scales for this image
+                const individualScales = window.individualScales[index] || ['1'];
+                const scales = individualScales.map(scale => parseFloat(scale));
+                const compressedFiles = {};
+                let totalProgress = 0;
+                const progressStep = 100 / scales.length;
+
+                // Get compression settings
+                const maxSizeMB = parseFloat(document.getElementById('maxSize').value);
+                const initialQuality = parseInt(document.getElementById('quality').value) / 100;
+                const outputFormat = document.getElementById('outputFormat').value;
+
+                // Compress for each selected scale
+                for (let i = 0; i < scales.length; i++) {
+                    const scale = scales[i];
+                    
+                    // Request image data at specific scale from Figma
+                    const scaledImageData = await requestImageAtScale(imageData.id, scale);
+                    const imageBlob = new Blob([new Uint8Array(scaledImageData)]);
+                    const file = new File([imageBlob], imageData.name, { type: 'image/png' });
+
+                    // Set up compression options
+                    const options = {
+                        maxSizeMB: maxSizeMB,
+                        initialQuality: initialQuality,
+                        useWebWorker: true,
+                        onProgress: (scaleProgress) => {
+                            const currentScaleProgress = totalProgress + (scaleProgress * progressStep / 100);
+                            progressFill.style.width = currentScaleProgress + '%';
+                        }
+                    };
+
+                    if (outputFormat) {
+                        options.fileType = outputFormat;
+                    }
+
+                    // Compress the image
+                    const compressedFile = await imageCompression(file, options);
+                    compressedFiles[scale] = compressedFile;
+                    
+                    totalProgress += progressStep;
+                    progressFill.style.width = totalProgress + '%';
+                }
+                
+                // Store all compressed files for download
+                if (!window.compressedFiles) window.compressedFiles = {};
+                window.compressedFiles[index] = compressedFiles;
+                
+                // Update inline size display showing all scales
+                updateSizeDisplay(index, imageData, compressedFiles);
+
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            } finally {
+                isProcessing = false;
+                imageElement.classList.remove('processing');
+                progressBar.classList.add('hidden');
+                progressFill.style.width = '0%';
+            }
+        }
+
+        // Helper function to request image at specific scale from Figma
+        async function requestImageAtScale(nodeId, scale) {
+            return new Promise((resolve, reject) => {
+                const messageHandler = (event) => {
+                    const { type, nodeId: responseNodeId, imageData, error } = event.data.pluginMessage;
+                    
+                    if (type === 'scaled-image-data' && responseNodeId === nodeId) {
+                        window.removeEventListener('message', messageHandler);
+                        if (error) {
+                            reject(new Error(error));
+                        } else {
+                            resolve(imageData);
+                        }
+                    }
+                };
+                
+                window.addEventListener('message', messageHandler);
+                
+                // Request scaled image from main code
+                parent.postMessage({ 
+                    pluginMessage: { 
+                        type: 'get-scaled-image',
+                        nodeId: nodeId,
+                        scale: scale
+                    } 
+                }, '*');
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    window.removeEventListener('message', messageHandler);
+                    reject(new Error('Timeout requesting scaled image'));
+                }, 10000);
+            });
+        }
+
+        // Helper function to calculate total uncompressed size for selected scales
+        function calculateTotalUncompressedSize(index, originalSize) {
+            const selectedScales = window.individualScales[index] || ['1'];
+            let totalSize = 0;
+            
+            selectedScales.forEach(scale => {
+                const scaleMultiplier = parseFloat(scale);
+                totalSize += originalSize * scaleMultiplier * scaleMultiplier; // Scale affects both dimensions
+            });
+            
+            return totalSize;
+        }
+
+        // Helper function to update size display for multiple scales
+        function updateSizeDisplay(index, originalImageData, compressedFiles) {
+            const sizeEl = document.getElementById('size-' + index);
+            if (!sizeEl) return;
+            
+            const originalSize = originalImageData.imageData.length;
+            const scales = Object.keys(compressedFiles).sort((a, b) => parseFloat(a) - parseFloat(b));
+            
+            if (scales.length === 1) {
+                const scale = scales[0];
+                const compressedSize = compressedFiles[scale].size;
+                const totalUncompressed = calculateTotalUncompressedSize(index, originalSize);
+                const compressionPercent = Math.round(((totalUncompressed - compressedSize) / totalUncompressed) * 100);
+                sizeEl.innerHTML = formatFileSize(totalUncompressed) + ' <span class="compressed-size">-' + compressionPercent + '%</span>';
+            } else {
+                // Calculate total compression for multiple files
+                // We need to compare total compressed size vs total uncompressed size for all scales
+                let totalUncompressedSize = 0;
+                let totalCompressedSize = 0;
+                
+                scales.forEach(scale => {
+                    const scaleMultiplier = parseFloat(scale);
+                    const uncompressedSizeForScale = originalSize * scaleMultiplier * scaleMultiplier; // Scale affects both dimensions
+                    const compressedSize = compressedFiles[scale].size;
+                    
+                    totalUncompressedSize += uncompressedSizeForScale;
+                    totalCompressedSize += compressedSize;
+                });
+                
+                const compressionPercent = Math.round(((totalUncompressedSize - totalCompressedSize) / totalUncompressedSize) * 100);
+                sizeEl.innerHTML = formatFileSize(totalUncompressedSize) + ' <span class="compressed-size">-' + compressionPercent + '%</span>';
+            }
+        }
+
+        // Helper function to update initial size display based on selected scales
+        function updateInitialSizeDisplay(index) {
+            const sizeEl = document.getElementById('size-' + index);
+            if (!sizeEl || !selectedImages[index]) return;
+            
+            const originalSize = selectedImages[index].imageData.length;
+            const totalSize = calculateTotalUncompressedSize(index, originalSize);
+            sizeEl.innerHTML = formatFileSize(totalSize);
+        }
+
+        // Replace original with compressed version
+        function replaceWithCompressed(index, compressedDataStr) {
+            const compressedData = JSON.parse(unescape(compressedDataStr));
+            parent.postMessage({ 
+                pluginMessage: { 
+                    type: 'compress-and-replace',
+                    nodeId: selectedImages[index].id,
+                    compressedImageData: compressedData
+                } 
+            }, '*');
+        }
+
+        // Create a compressed copy
+        function createCompressedCopy(index, compressedDataStr) {
+            const compressedData = JSON.parse(unescape(compressedDataStr));
+            parent.postMessage({ 
+                pluginMessage: { 
+                    type: 'create-compressed-copy',
+                    nodeId: selectedImages[index].id,
+                    compressedImageData: compressedData
+                } 
+            }, '*');
+        }
+
+        // Download compressed file
+        function downloadCompressedFile(index) {
+            const compressedFile = window.compressedFiles[index];
+            if (!compressedFile) {
+                showMessage('No compressed file available for download', 'error');
+                return;
+            }
+
+            // Create download link
+            const url = URL.createObjectURL(compressedFile);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Generate filename based on original name and compression settings
+            const originalName = selectedImages[index].name;
+            const outputFormat = document.getElementById('outputFormat').value;
+            
+            let extension = 'png'; // default
+            if (outputFormat === 'image/jpeg') extension = 'jpg';
+            else if (outputFormat === 'image/webp') extension = 'webp';
+            else if (outputFormat === 'image/png') extension = 'png';
+            
+            // Remove existing extension from name if any
+            const nameWithoutExt = originalName.replace(/\.[^/.]+$/, "");
+            link.download = nameWithoutExt + '_compressed.' + extension;
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up the URL
+            URL.revokeObjectURL(url);
+            
+            showMessage('File downloaded successfully!', 'success');
+        }
+
+        // Removed per new simplified flow (only Compress → Export in footer)
+
+        // Create image from compressed frame data
+        function createImageFromFrame(index, compressedDataStr) {
+            const compressedData = JSON.parse(unescape(compressedDataStr));
+            parent.postMessage({ 
+                pluginMessage: { 
+                    type: 'create-image-from-frame',
+                    frameId: selectedImages[index].id,
+                    compressedImageData: compressedData,
+                    frameName: selectedImages[index].name
+                } 
+            }, '*');
+        }
+
+        // Helper functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // New scanning banner functions
+        function showScanningBanner(message) {
+            if (scanningText) {
+                scanningText.textContent = message;
+            }
+            if (scanningBanner) {
+                scanningBanner.classList.remove('hidden');
+            }
+            
+            // Dim existing images if they are displayed
+            if (selectedImages.length > 0) {
+                document.body.classList.add('images-dimmed');
+            }
+        }
+        
+        function hideScanningBanner() {
+            if (scanningBanner) {
+                scanningBanner.classList.add('hidden');
+            }
+            
+            // Remove dimming effect
+            document.body.classList.remove('images-dimmed');
+        }
+
+        function showMessage(message, type) {
+            // Remove any existing messages
+            const existingMessages = document.querySelectorAll('.error, .success');
+            existingMessages.forEach(msg => msg.remove());
+
+            // Create new message
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            
+            // Insert after header
+            const header = document.querySelector('.header');
+            header.parentNode.insertBefore(messageDiv, header.nextSibling);
+
+            // Auto-remove after 5 seconds (longer for error messages)
+            setTimeout(() => {
+                messageDiv.remove();
+            }, type === 'error' ? 5000 : 3000);
+        }
+
+        // Initialize the plugin
+        requestSelectedImages();
+    </script>
+</body>
+</html>
