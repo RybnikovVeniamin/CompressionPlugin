@@ -119,7 +119,7 @@
             background: var(--color-bg-page);
             border: none; /* remove border */
             border-radius: var(--radius-lg);
-            padding: var(--space-md) 0; /* align content to left edge */
+            padding: var(--space-md) 0;
             margin-bottom: var(--space-sm);
         }
 
@@ -131,7 +131,9 @@
             gap: var(--space-sm);
         }
 
-        .image-item.unselected { opacity: 0.5; }
+        .image-item.unselected { 
+            /* Убираем все визуальные эффекты - файлы остаются полностью видимыми */
+        }
         /* Branded checkbox matching Figma (input visually hidden, styled sibling) */
         .checkbox-wrap { position: relative; width: 20px; height: 20px; display: inline-block; }
         .item-checkbox {
@@ -190,7 +192,7 @@
             flex-direction: column;
             gap: 2px;
             min-width: 0; /* Allow shrinking */
-            margin-right: 16px; /* 16px отступ от селектора масштаба */
+            margin-right: 6px; /* Убираем лишний отступ справа */
         }
 
         .image-name {
@@ -223,7 +225,7 @@
             display: flex; 
             align-items: center; 
             gap: 8px;
-            min-width: 85px; /* Уменьшено для большего места названию файла */
+            min-width: 111px; /* Размеры из Figma: 61px (format) + 8px (gap) + 42px (scale) */
             flex-shrink: 0; /* Не сжимается */
             justify-content: flex-end; /* Align content to the right */
         }
@@ -547,21 +549,42 @@
             margin-top: var(--space-sm);
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: var(--color-bg-primary);
-            border-radius: 2px;
-            overflow: hidden;
-            margin: var(--space-sm) 0;
+        /* Replace button - matching Figma design */
+        .button-replace {
+            background: #e9eaf8;  /* bgMarketingSecondarySolid from Figma */
+            color: #070707;       /* textActivePremium from Figma */
+            border: none;
+            font-family: 'Onest', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 375;     /* Book weight from Figma */
+            line-height: 20px;
+            border-radius: 12px;
+            padding: 10px;
+            height: 44px;
+            width: 154px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: filter 0.2s ease;
+            text-decoration: none;
+            white-space: nowrap;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: var(--color-bg-brand);
-            width: 0%;
-            transition: width 0.3s ease;
+        .button-replace:hover:not(:disabled) {
+            filter: brightness(0.98);
         }
+
+        .button-replace:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .button-replace.hidden {
+            display: none;
+        }
+
+
 
         .results {
             background: var(--color-bg-primary);
@@ -648,11 +671,15 @@
             grid-template-columns: 1fr 1fr;
             gap: var(--space-sm);
             margin-bottom: 24px; /* Same spacing as settings-group */
+            margin-left: calc(-1 * var(--space-lg)); 
+            margin-right: calc(-1 * var(--space-lg)); 
+            padding-left: var(--space-lg); 
+            padding-right: var(--space-lg);
         }
 
         /* Button icons removed; text-only buttons */
 
-        /* Footer buttons (Export + Refresh) */
+        /* Footer buttons (Export + Replace + Refresh) */
         .footer-buttons {
             display: flex;
             gap: var(--space-sm);
@@ -663,18 +690,165 @@
             background: transparent;
             z-index: 10;
         }
-        .footer-buttons .button { flex: 1; }
         
         /* Specific button widths */
+        .footer-buttons #primaryActionBtn { 
+            flex: 1; /* Takes most space */
+        }
+        
+        .footer-buttons #replaceBtn { 
+            flex: 0 0 154px; /* Fixed width matching Figma design */
+            min-width: 154px;
+            max-width: 154px;
+        }
+        
         .footer-buttons #refreshBtn { 
             flex: 0 0 55px; /* Fixed width for refresh button */
             min-width: 55px;
             max-width: 55px;
             justify-content: center; /* Center the icon */
         }
+
+        /* Format selector styles */
+        .format-selector-container {
+            position: relative;
+            width: 100%;
+        }
         
-        .footer-buttons #primaryActionBtn { 
-            flex: 1; /* Takes remaining space */
+        .format-selector-button {
+            width: 100%;
+            height: var(--control-height);
+            padding: 10px 16px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            background: #ffffff;
+            color: var(--color-text-primary);
+            font-family: 'Onest', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            line-height: 20px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            gap: 8px;
+        }
+        
+        .format-selector-button:hover {
+            border-color: var(--color-bg-brand);
+        }
+        
+        .format-selector-button:focus {
+            outline: none;
+            border-color: var(--color-bg-brand);
+        }
+        
+        .format-arrow {
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        
+        .format-arrow.rotated {
+            transform: rotate(180deg);
+        }
+        
+        .format-popup {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0px 0px 14px 0px rgba(0,0,0,0.15);
+            padding: 16px;
+            margin-top: 4px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+        }
+        
+        .format-popup.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .format-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            border-radius: var(--radius-md);
+            margin: 0 -8px;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+        
+        .format-option:hover {
+            background-color: var(--color-bg-primary);
+        }
+        
+        .format-option .checkbox-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .format-option .format-checkbox {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .format-option .checkbox-visual {
+            width: 20px;
+            height: 20px;
+            border: 1px solid rgba(204,214,228,0.6);
+            border-radius: 100px;
+            background: rgba(0,150,255,0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
+        }
+        
+        .format-option .format-checkbox:checked + .checkbox-visual {
+            background: #005bff;
+            border-color: #005bff;
+        }
+        
+        .format-option .format-checkbox:checked + .checkbox-visual::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background-image: url('data:image/svg+xml,%3Csvg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M13.4673 4.19946C13.9555 4.68762 13.9555 5.47907 13.4673 5.96723L7.63396 11.8006C7.14581 12.2887 6.35435 12.2887 5.8662 11.8006L2.53286 8.46723C2.04471 7.97907 2.04471 7.18762 2.53286 6.69946C3.02102 6.2113 3.81248 6.2113 4.30063 6.69946L6.75008 9.14891L11.6995 4.19946C12.1877 3.7113 12.9791 3.7113 13.4673 4.19946Z" fill="white"/%3E%3C/svg%3E');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: block;
+        }
+        
+        .format-option-text {
+            font-family: 'Onest', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            line-height: 16px;
+            font-weight: 400;
+            color: #070707;
         }
 
         /* Scale selector styles */
@@ -830,7 +1004,7 @@
             padding: 10px 16px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: space-between;
             position: fixed;
             left: var(--space-lg);
             right: var(--space-lg);
@@ -841,6 +1015,19 @@
 
         .scanning-banner.hidden {
             display: none;
+        }
+
+        .scanning-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stop-button {
+            width: 90px;
+            padding: 8px 12px;
+            height: auto;
+            font-size: 12px;
         }
 
         .scanning-spinner {
@@ -886,16 +1073,40 @@
             }
         }
 
-        /* State for dimming existing images during scan */
-        .images-dimmed .image-item {
-            opacity: 0.6;
-            transition: opacity 0.3s ease;
-        }
 
-        /* Individual scale selector for each image */
+
+        /* Individual selectors for each image */
+        .individual-selectors {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        
+        /* Ensure image list has proper margins */
+        #imageList {
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Ensure main content maintains proper side margins */
+        .header,
+        .settings-container,
+        #imageList {
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        
+        .individual-format-selector {
+            position: relative;
+            width: 61px; /* Width from Figma design */
+            flex-shrink: 0; /* Don't shrink this element */
+        }
+        
         .individual-scale-selector {
             position: relative;
-            width: 85px; /* Increased width to fit "3 scales" text */
+            width: 42px; /* Width from Figma design */
             flex-shrink: 0; /* Don't shrink this element */
         }
         
@@ -916,7 +1127,6 @@
             cursor: pointer;
             transition: all 0.2s ease;
             gap: 2px;
-            min-width: 75px; /* Increased to fit "3 scales" text */
             width: 100%; /* Take full width of container */
         }
         
@@ -925,6 +1135,35 @@
         }
         
         .individual-scale-button:focus {
+            outline: none;
+            border-color: var(--color-bg-brand);
+        }
+
+        .individual-format-button {
+            height: 24px;
+            padding: 2px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: #ffffff;
+            color: var(--color-text-primary);
+            font-family: 'Onest', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            line-height: 16px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            gap: 2px;
+            width: 100%;
+        }
+        
+        .individual-format-button:hover {
+            border-color: var(--color-bg-brand);
+        }
+        
+        .individual-format-button:focus {
             outline: none;
             border-color: var(--color-bg-brand);
         }
@@ -947,7 +1186,6 @@
             background: #ffffff;
             border: 1px solid var(--color-border);
             border-radius: var(--radius-lg);
-            box-shadow: 0px 0px 14px 0px rgba(0,0,0,0.15);
             padding: 16px;
             margin-top: 4px;
             z-index: 1000;
@@ -964,8 +1202,43 @@
             transform: translateY(0);
         }
 
+        .individual-format-popup {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-top: 4px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+            min-width: 160px;
+        }
+        
+        .individual-format-popup.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .individual-format-arrow {
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+            width: 12px;
+            height: 12px;
+        }
+        
+        .individual-format-arrow.rotated {
+            transform: rotate(180deg);
+        }
+
         /* Style checkboxes in individual scale selectors */
-        .individual-scale-checkbox {
+        .individual-scale-checkbox,
+        .individual-format-checkbox {
             position: absolute;
             inset: 0;
             margin: 0;
@@ -974,6 +1247,118 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
+        }
+        
+        .format-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            transition: background-color 0.2s ease;
+            margin: 0 -8px;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+        
+        .format-option:hover {
+            background-color: var(--color-bg-primary);
+        }
+        
+        .format-option:not(:last-child) {
+            margin-bottom: 4px;
+        }
+        
+        .format-option-text {
+            font-size: 12px;
+            line-height: 16px;
+            color: var(--color-text-primary);
+            font-weight: 400;
+        }
+        
+        .format-option .checkbox-wrap {
+            width: 20px;
+            height: 20px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .format-option .individual-format-checkbox {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .format-option .checkbox-visual {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%; /* Круглая форма для радиобаттонов */
+            border: 1px solid rgba(204,214,228,0.6);
+            background: rgba(0,150,255,0.08); /* Светло-голубой фон как в Figma */
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+
+        .format-option:hover .checkbox-visual {
+            border-color: rgba(204,214,228,0.8);
+            background: rgba(0,150,255,0.12); /* Немного более насыщенный фон при hover */
+        }
+        
+        .format-option .individual-format-checkbox:checked + .checkbox-visual {
+            background: #005bff;
+            border-color: #005bff;
+        }
+
+        .format-option:hover .individual-format-checkbox:checked + .checkbox-visual {
+            background: #0052e6; /* Немного темнее при hover выбранного состояния */
+            border-color: #0052e6;
+        }
+        
+        .format-option .individual-format-checkbox:checked + .checkbox-visual::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffffff;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* Handle both radio and checkbox types for format selection */
+        .format-option input[type="radio"]:checked + .checkbox-visual {
+            background: #005bff;
+            border-color: #005bff;
+        }
+
+        .format-option:hover input[type="radio"]:checked + .checkbox-visual {
+            background: #0052e6;
+            border-color: #0052e6;
+        }
+        
+        .format-option input[type="radio"]:checked + .checkbox-visual::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffffff;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
 
         .individual-scale-checkbox:checked + .checkbox-visual {
@@ -1016,13 +1401,46 @@
             <div class="settings-grid-2">
                 <div class="settings-group wide-group">
                     <label for="outputFormat">Format</label>
-                    <div class="select-wrapper">
-                        <select id="outputFormat">
-                            <option value="">Keep original</option>
-                            <option value="image/jpeg">JPEG (smaller files)</option>
-                            <option value="image/png">PNG (lossless)</option>
-                            <option value="image/webp">WebP (best compression)</option>
-                        </select>
+                    <div class="format-selector-container">
+                        <button type="button" class="format-selector-button" id="formatSelector">
+                            <span class="format-selected-text" id="formatSelectedText">PNG (lossless)</span>
+                            <svg class="format-arrow" id="formatArrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3.4138 5.65088C3.92694 5.18906 4.7173 5.23065 5.17913 5.74379L8.00001 8.87811L10.8209 5.74379C11.2827 5.23065 12.0731 5.18906 12.5862 5.65088C13.0994 6.1127 13.141 6.90307 12.6791 7.4162L8.92913 11.5829C8.69207 11.8463 8.35437 11.9967 8.00001 11.9967C7.64565 11.9967 7.30795 11.8463 7.07089 11.5829L3.32089 7.4162C2.85907 6.90307 2.90067 6.1127 3.4138 5.65088Z" fill="#666666"/>
+                            </svg>
+                        </button>
+                        <div class="format-popup" id="formatPopup">
+                            <div class="format-option" data-format="different">
+                                <span class="checkbox-wrap">
+                                    <input type="radio" class="format-checkbox" name="global-format" id="format-different" value="different" />
+                                    <span class="checkbox-visual"></span>
+                                </span>
+                                <span class="format-option-text">Different formats</span>
+                            </div>
+
+                            <div class="format-option" data-format="JPEG">
+                                <span class="checkbox-wrap">
+                                    <input type="radio" class="format-checkbox" name="global-format" id="format-jpeg" value="JPEG" />
+                                    <span class="checkbox-visual"></span>
+                                </span>
+                                <span class="format-option-text">JPEG (smaller files)</span>
+                            </div>
+                            <div class="format-option" data-format="PNG">
+                                <span class="checkbox-wrap">
+                                    <input type="radio" class="format-checkbox" name="global-format" id="format-png" value="PNG" checked />
+                                    <span class="checkbox-visual"></span>
+                                </span>
+                                <span class="format-option-text">PNG (lossless)</span>
+                            </div>
+                            <div class="format-option" data-format="WEBP">
+                                <span class="checkbox-wrap">
+                                    <input type="radio" class="format-checkbox" name="global-format" id="format-webp" value="WEBP" />
+                                    <span class="checkbox-visual"></span>
+                                </span>
+                                <span class="format-option-text">WebP (best compression)</span>
+                            </div>
+                        </div>
+                        <!-- Hidden input for compatibility with existing logic -->
+                        <input type="hidden" id="outputFormat" value="" />
                     </div>
                 </div>
 
@@ -1064,13 +1482,14 @@
                                 </span>
                                 <span class="scale-option-text">3x (Triple size)</span>
                             </div>
-                            <div class="scale-option" data-scale="0.5">
+                            <div class="scale-option" data-scale="4">
                                 <span class="checkbox-wrap">
-                                    <input type="checkbox" class="scale-checkbox" id="scale-0.5" />
+                                    <input type="checkbox" class="scale-checkbox" id="scale-4" />
                                     <span class="checkbox-visual"></span>
                                 </span>
-                                <span class="scale-option-text">0.5x (Half size)</span>
+                                <span class="scale-option-text">4x (Quadro size)</span>
                             </div>
+
                         </div>
                     </div>
                     <!-- Hidden input to maintain compatibility -->
@@ -1101,15 +1520,18 @@
 
     <!-- Scanning banner positioned above buttons -->
     <div class="scanning-banner hidden" id="scanningBanner">
-        <svg class="scanning-spinner" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M2.57401 7.5297C2.02579 9.17773 2.04135 10.9613 2.61825 12.5995C3.19516 14.2377 4.30062 15.6375 5.76054 16.5783C7.22045 17.5192 8.95186 17.9477 10.6821 17.7963C12.4123 17.6449 14.043 16.9223 15.3174 15.7422C16.5917 14.5622 17.4373 12.9917 17.721 11.2782C18.0047 9.5647 17.7103 7.80552 16.8842 6.27772C16.0581 4.74993 14.7473 3.54034 13.1582 2.83945C11.569 2.13856 9.79192 1.98621 8.10669 2.40638C7.52422 2.55161 6.93429 2.19715 6.78907 1.61468C6.64384 1.0322 6.9983 0.442276 7.58078 0.297048C9.73413 -0.239843 12.0049 -0.0451679 14.0354 0.850409C16.066 1.74599 17.7409 3.29158 18.7965 5.24376C19.852 7.19594 20.2282 9.44378 19.8657 11.6333C19.5032 13.8227 18.4227 15.8294 16.7944 17.3373C15.1661 18.8452 13.0824 19.7685 10.8715 19.9619C8.66072 20.1554 6.44836 19.6079 4.58291 18.4057C2.71746 17.2035 1.30493 15.4149 0.567772 13.3216C-0.169384 11.2283 -0.189272 8.94932 0.51124 6.84351C0.700727 6.27389 1.3161 5.96573 1.88572 6.15522C2.45534 6.3447 2.7635 6.96008 2.57401 7.5297Z" fill="white"/>
-        </svg>
-        <span class="scanning-text" id="scanningText">Scanning for images...</span>
-        <button class="button button-secondary" id="stopBtn" style="margin-left: 12px; padding: 8px 12px; height: auto; font-size: 12px;">Stop</button>
+        <div class="scanning-left">
+            <svg class="scanning-spinner" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M2.57401 7.5297C2.02579 9.17773 2.04135 10.9613 2.61825 12.5995C3.19516 14.2377 4.30062 15.6375 5.76054 16.5783C7.22045 17.5192 8.95186 17.9477 10.6821 17.7963C12.4123 17.6449 14.043 16.9223 15.3174 15.7422C16.5917 14.5622 17.4373 12.9917 17.721 11.2782C18.0047 9.5647 17.7103 7.80552 16.8842 6.27772C16.0581 4.74993 14.7473 3.54034 13.1582 2.83945C11.569 2.13856 9.79192 1.98621 8.10669 2.40638C7.52422 2.55161 6.93429 2.19715 6.78907 1.61468C6.64384 1.0322 6.9983 0.442276 7.58078 0.297048C9.73413 -0.239843 12.0049 -0.0451679 14.0354 0.850409C16.066 1.74599 17.7409 3.29158 18.7965 5.24376C19.852 7.19594 20.2282 9.44378 19.8657 11.6333C19.5032 13.8227 18.4227 15.8294 16.7944 17.3373C15.1661 18.8452 13.0824 19.7685 10.8715 19.9619C8.66072 20.1554 6.44836 19.6079 4.58291 18.4057C2.71746 17.2035 1.30493 15.4149 0.567772 13.3216C-0.169384 11.2283 -0.189272 8.94932 0.51124 6.84351C0.700727 6.27389 1.3161 5.96573 1.88572 6.15522C2.45534 6.3447 2.7635 6.96008 2.57401 7.5297Z" fill="white"/>
+            </svg>
+            <span class="scanning-text" id="scanningText">Scanning for images...</span>
+        </div>
+        <button class="button button-secondary stop-button" id="stopBtn">Stop</button>
     </div>
 
     <div class="footer-buttons">
         <button class="button button-primary" id="primaryActionBtn" data-state="compress">Compress</button>
+        <button class="button-replace hidden" id="replaceBtn" disabled title="Replace export settings with compressed versions">Replace</button>
         <button class="button button-secondary" id="refreshBtn" title="Refresh">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M4.19937 0.366117C4.68752 -0.122039 5.47898 -0.122039 5.96714 0.366117C6.45529 0.854272 6.45529 1.64573 5.96714 2.13388L5.60102 2.5H8.41659C11.8684 2.5 14.6666 5.29822 14.6666 8.75C14.6666 12.2018 11.8684 15 8.41659 15C5.89228 15 3.72012 13.5035 2.73389 11.3547C2.44593 10.7273 2.72111 9.98524 3.34854 9.69727C3.97597 9.40931 4.71804 9.68449 5.00601 10.3119C5.5998 11.6057 6.90506 12.5 8.41659 12.5C10.4877 12.5 12.1666 10.8211 12.1666 8.75C12.1666 6.67893 10.4877 5 8.41659 5H5.60102L5.96714 5.36612C6.45529 5.85427 6.45529 6.64573 5.96714 7.13388C5.47898 7.62204 4.68752 7.62204 4.19937 7.13388L1.69937 4.63388C1.21121 4.14573 1.21121 3.35427 1.69937 2.86612L4.19937 0.366117Z" fill="currentColor"/>
@@ -1136,8 +1558,10 @@
 
         let selectedImages = [];
         let isProcessing = false;
+        let shouldStopCompression = false;
         window.compressedFiles = window.compressedFiles || {};
         window.individualScales = window.individualScales || {}; // Store individual scales for each image (can be multiple)
+        window.individualFormats = window.individualFormats || {}; // Store selected format for each image
 
         // Update quality display
         qualitySlider.addEventListener('input', function() {
@@ -1148,6 +1572,49 @@
         let selectedScales = new Set(['1']); // Default to 1x selected
         let isScalePopupOpen = false;
         
+        // Global popup management system
+        function closeAllPopups() {
+            // Close global scale popup
+            if (isScalePopupOpen) {
+                closeScalePopup();
+            }
+            
+            // Close format popup
+            if (typeof isFormatPopupOpen !== 'undefined' && isFormatPopupOpen) {
+                closeFormatPopup();
+            }
+            
+            // Close all individual scale popups
+            if (selectedImages && selectedImages.length > 0) {
+                selectedImages.forEach((_, index) => {
+                    const scalePopup = document.getElementById('individualScalePopup-' + index);
+                    const scaleArrow = document.getElementById('individualScaleArrow-' + index);
+                    const scaleButton = document.getElementById('individualScale-' + index);
+                    if (scalePopup && scaleArrow) {
+                        scalePopup.classList.remove('open');
+                        scaleArrow.classList.remove('rotated');
+                        // Remove focus to hide blue outline
+                        if (scaleButton) {
+                            scaleButton.blur();
+                        }
+                    }
+                    
+                    // Close individual format popups
+                    const formatPopup = document.getElementById('individualFormatPopup-' + index);
+                    const formatArrow = document.getElementById('individualFormatArrow-' + index);
+                    const formatButton = document.getElementById('individualFormat-' + index);
+                    if (formatPopup && formatArrow) {
+                        formatPopup.classList.remove('open');
+                        formatArrow.classList.remove('rotated');
+                        // Remove focus to hide blue outline
+                        if (formatButton) {
+                            formatButton.blur();
+                        }
+                    }
+                });
+            }
+        }
+        
         const scaleSelector = document.getElementById('scaleSelector');
         const scalePopup = document.getElementById('scalePopup');
         const scaleArrow = document.getElementById('scaleArrow');
@@ -1157,19 +1624,38 @@
         // Toggle scale popup
         scaleSelector.addEventListener('click', (e) => {
             e.stopPropagation();
-            toggleScalePopup();
+            // If this popup is already open, close it
+            if (isScalePopupOpen) {
+                closeScalePopup();
+            } else {
+                // Close all other popups first
+                closeAllPopups();
+                // Then open this one
+                openScalePopup();
+            }
         });
         
         // Close popup when clicking outside
         document.addEventListener('click', (e) => {
-            if (!scalePopup.contains(e.target) && !scaleSelector.contains(e.target)) {
-                closeScalePopup();
+            // Check if click is outside all popups
+            const isInsideGlobalScalePopup = scalePopup && scalePopup.contains(e.target);
+            const isInsideGlobalScaleSelector = scaleSelector && scaleSelector.contains(e.target);
+            const isInsideGlobalFormatPopup = formatPopup && formatPopup.contains(e.target);
+            const isInsideGlobalFormatSelector = formatSelector && formatSelector.contains(e.target);
+            const isInsideIndividualScalePopup = e.target.closest('.individual-scale-selector');
+            const isInsideIndividualFormatPopup = e.target.closest('.individual-format-selector');
+            
+            if (!isInsideGlobalScalePopup && !isInsideGlobalScaleSelector && 
+                !isInsideGlobalFormatPopup && !isInsideGlobalFormatSelector && 
+                !isInsideIndividualScalePopup && !isInsideIndividualFormatPopup) {
+                closeAllPopups();
             }
         });
         
         // Handle checkbox changes in scale popup
         document.querySelectorAll('.scale-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
+                console.log('Global scale checkbox change event:', e.target.value, 'checked:', e.target.checked);
                 const scale = e.target.closest('.scale-option').dataset.scale;
                 
                 // If "Different" is selected, ignore
@@ -1213,6 +1699,22 @@
             });
         });
         
+        // Add click handlers to scale option text for better interaction
+        document.querySelectorAll('.scale-option').forEach(option => {
+            const textElement = option.querySelector('.scale-option-text');
+            if (textElement) {
+                textElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const checkbox = option.querySelector('.scale-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        console.log('Dispatching change event for global scale text click:', checkbox.value, 'checked:', checkbox.checked);
+                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            }
+        });
+        
         function toggleScalePopup() {
             if (isScalePopupOpen) {
                 closeScalePopup();
@@ -1231,6 +1733,202 @@
             isScalePopupOpen = false;
             scalePopup.classList.remove('open');
             scaleArrow.classList.remove('rotated');
+            // Remove focus to hide blue outline
+            if (scaleSelector) {
+                scaleSelector.blur();
+            }
+        }
+
+        // Format dropdown functionality (new custom dropdown)
+        const formatSelector = document.getElementById('formatSelector');
+        const formatPopup = document.getElementById('formatPopup');
+        const formatArrow = document.getElementById('formatArrow');
+        const formatSelectedText = document.getElementById('formatSelectedText');
+        const outputFormatHidden = document.getElementById('outputFormat');
+
+        // Initialize default format
+        if (outputFormatHidden && !outputFormatHidden.value) {
+            outputFormatHidden.value = 'PNG';
+            console.log('Initialized global format to PNG');
+        }
+
+        let isFormatPopupOpen = false;
+
+        // Toggle format popup
+        if (formatSelector) {
+            formatSelector.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // If this popup is already open, close it
+                if (isFormatPopupOpen) {
+                    closeFormatPopup();
+                } else {
+                    // Close all other popups first
+                    closeAllPopups();
+                    // Then open this one
+                    openFormatPopup();
+                }
+            });
+        }
+
+
+
+        // Handle radio button changes in format popup
+        if (formatPopup) {
+            // Add click handlers to format options for better interaction
+            const globalFormatOptions = formatPopup.querySelectorAll('.format-option');
+            globalFormatOptions.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('Global format option clicked:', option.dataset.format);
+                    const selectedFormat = option.dataset.format;
+                    const formatText = option.querySelector('.format-option-text').textContent;
+                    const radio = option.querySelector('.format-checkbox');
+                    
+                    if (radio) {
+                        // Uncheck all global format radios first
+                        const allGlobalRadios = formatPopup.querySelectorAll('.format-checkbox');
+                        allGlobalRadios.forEach(r => r.checked = false);
+                        // Check the selected one
+                        radio.checked = true;
+
+                        // Update display text
+                        formatSelectedText.textContent = formatText;
+                        
+                        // Update hidden input only for valid formats (not "different")
+                        if (selectedFormat !== 'different') {
+                            outputFormatHidden.value = selectedFormat;
+                        }
+
+                        // Apply format to all individual selectors (except for "different" option)
+                        if (selectedImages.length > 0 && selectedFormat !== 'different') {
+                            console.log('Applying global format', selectedFormat, 'to', selectedImages.length, 'images');
+                            selectedImages.forEach((img, index) => {
+                                console.log('Setting format for image', index, 'to', selectedFormat);
+                                window.individualFormats[index] = selectedFormat;
+                                
+                                // Update individual format button text
+                                const formatText = document.getElementById('individualFormatText-' + index);
+                                if (formatText) {
+                                    const newText = getIndividualFormatText(img.exportFormats, index);
+                                    console.log('Updating format text for image', index, 'to', newText);
+                                    formatText.textContent = newText;
+                                }
+                                
+                                // Update individual format radio buttons
+                                const formatRadios = document.querySelectorAll(`#individualFormatPopup-${index} .individual-format-checkbox`);
+                                formatRadios.forEach(radio => {
+                                    radio.checked = (radio.value === selectedFormat);
+                                });
+                            });
+                            console.log('Applied global format to all images. Current individualFormats:', window.individualFormats);
+                        } else {
+                            console.log('Not applying format change:', {
+                                selectedFormat,
+                                selectedImages: selectedImages.length,
+                                isDifferent: selectedFormat === 'different'
+                            });
+                        }
+
+                        closeFormatPopup();
+                    }
+                });
+            });
+            
+            // Also keep the original change handler as backup
+            formatPopup.addEventListener('change', (e) => {
+                console.log('Format popup change event triggered:', e.target);
+                if (e.target.type === 'radio' && e.target.classList.contains('format-checkbox')) {
+                    console.log('Processing radio change for format:', e.target.value);
+                    const formatOption = e.target.closest('.format-option');
+                    const selectedFormat = formatOption.dataset.format;
+                    const formatText = formatOption.querySelector('.format-option-text').textContent;
+                    console.log('Change handler - selected format:', selectedFormat);
+
+                    // Update display text
+                    formatSelectedText.textContent = formatText;
+                    
+                    // Update hidden input only for valid formats (not "different")
+                    if (selectedFormat !== 'different') {
+                        outputFormatHidden.value = selectedFormat;
+                    }
+
+                    // Apply format to all individual selectors (except for "different" option)
+                    if (selectedImages.length > 0 && selectedFormat !== 'different') {
+                        console.log('Applying global format (backup handler)', selectedFormat, 'to', selectedImages.length, 'images');
+                        selectedImages.forEach((img, index) => {
+                            console.log('Setting format for image', index, 'to', selectedFormat);
+                            window.individualFormats[index] = selectedFormat;
+                            
+                            // Update individual format button text
+                            const formatText = document.getElementById('individualFormatText-' + index);
+                            if (formatText) {
+                                const newText = getIndividualFormatText(img.exportFormats, index);
+                                console.log('Updating format text for image', index, 'to', newText);
+                                formatText.textContent = newText;
+                            }
+                            
+                            // Update individual format radio buttons
+                            const formatRadios = document.querySelectorAll(`#individualFormatPopup-${index} .individual-format-checkbox`);
+                            formatRadios.forEach(radio => {
+                                radio.checked = (radio.value === selectedFormat);
+                            });
+                        });
+                        console.log('Applied global format (backup handler) to all images. Current individualFormats:', window.individualFormats);
+                    } else {
+                        console.log('Not applying format change (backup handler):', {
+                            selectedFormat,
+                            selectedImages: selectedImages.length,
+                            isDifferent: selectedFormat === 'different'
+                        });
+                    }
+
+                    closeFormatPopup();
+                }
+            });
+            
+            // Add click handlers to format option text for better interaction
+            globalFormatOptions.forEach(option => {
+                const textElement = option.querySelector('.format-option-text');
+                if (textElement) {
+                    textElement.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const radio = option.querySelector('.format-checkbox');
+                        if (radio) {
+                            // Uncheck all global format radios first
+                            const allGlobalRadios = formatPopup.querySelectorAll('.format-checkbox');
+                            allGlobalRadios.forEach(r => r.checked = false);
+                            // Check the selected one
+                            radio.checked = true;
+                            console.log('Dispatching change event for format text click:', radio.value);
+                            radio.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    });
+                }
+            });
+        }
+
+        function toggleFormatPopup() {
+            if (isFormatPopupOpen) {
+                closeFormatPopup();
+            } else {
+                openFormatPopup();
+            }
+        }
+
+        function openFormatPopup() {
+            isFormatPopupOpen = true;
+            formatPopup.classList.add('open');
+            formatArrow.classList.add('rotated');
+        }
+
+        function closeFormatPopup() {
+            isFormatPopupOpen = false;
+            formatPopup.classList.remove('open');
+            formatArrow.classList.remove('rotated');
+            // Remove focus to hide blue outline
+            if (formatSelector) {
+                formatSelector.blur();
+            }
         }
         
         function updateScaleDisplay() {
@@ -1256,7 +1954,7 @@
                 case '1': return '1x (Original size)';
                 case '2': return '2x (Double size)';
                 case '3': return '3x (Triple size)';
-                case '0.5': return '0.5x (Half size)';
+                case '4': return '4x (Quadro size)';
                 case 'different': return 'Different scales';
                 default: return scale + 'x';
             }
@@ -1270,11 +1968,11 @@
                         case '1': return '1x';
                         case '2': return '2x';
                         case '3': return '3x';
-                        case '0.5': return '0.5x';
+                        case '4': return '4x';
                         default: return scale + 'x';
                     }
                 } else {
-                    return scales.length + ' scales';
+                    return scales.length.toString();
                 }
             } else {
                 // Fallback for backward compatibility
@@ -1282,10 +1980,44 @@
                     case '1': return '1x';
                     case '2': return '2x';
                     case '3': return '3x';
-                    case '0.5': return '0.5x';
+                    case '4': return '4x';
                     default: return scales + 'x';
                 }
             }
+        }
+
+        function getIndividualFormatText(exportFormats, index) {
+            console.log('getIndividualFormatText called for index', index, 'with exportFormats:', exportFormats, 'individualFormats[index]:', window.individualFormats?.[index]);
+            
+            // Check if user has made a selection
+            if (window.individualFormats && window.individualFormats[index]) {
+                const selectedFormat = window.individualFormats[index];
+                console.log('Using selected format for index', index, ':', selectedFormat);
+                if (selectedFormat === 'PNG') return 'PNG';
+                if (selectedFormat === 'JPEG') return 'JPEG';
+                if (selectedFormat === 'WEBP') return 'WebP';
+                console.warn('Unknown selected format for index', index, ':', selectedFormat);
+            }
+            
+            console.log('No individual format selected for index', index, ', using export formats fallback');
+            
+            // Auto-select based on Figma export formats
+            if (exportFormats && exportFormats.length > 0) {
+                if (exportFormats.length === 1) {
+                    const format = exportFormats[0];
+                    console.log('Single export format for index', index, ':', format);
+                    if (format === 'JPG') return 'JPEG';  // Figma uses JPG, we show JPEG
+                    if (format === 'PNG') return 'PNG';
+                    if (format === 'WEBP') return 'WebP';
+                }
+                // Multiple formats - default to PNG
+                console.log('Multiple export formats for index', index, ', defaulting to PNG');
+                return 'PNG';
+            }
+            
+            // Default to PNG if no format specified
+            console.log('No export formats for index', index, ', defaulting to PNG');
+            return 'PNG';
         }
         
         function getSelectedScales() {
@@ -1308,6 +2040,7 @@
             window.compressedFiles = {};
             window.uiSelection = {};
             window.individualScales = {};
+            window.individualFormats = {};
             
             // Reset UI state
             if (primaryActionBtn) {
@@ -1322,11 +2055,28 @@
         if (stopBtn) {
             stopBtn.addEventListener('click', () => {
                 console.log('Stop button clicked');
+                
+                // Stop compression immediately
+                shouldStopCompression = true;
+                
+                // Reset processing state to allow new operations
+                isProcessing = false;
+                
+                // Remove processing visual state from all images
+                selectedImages.forEach((_, index) => {
+                    const imageElement = document.getElementById('image-' + index);
+                    if (imageElement) {
+                        imageElement.classList.remove('processing');
+                    }
+                });
+                
+                // Also stop any ongoing scanning/processing in the main code
                 parent.postMessage({ 
                     pluginMessage: { 
                         type: 'stop-processing'
                     } 
                 }, '*');
+                
                 hideScanningBanner();
                 showMessage('Processing stopped', 'success');
             });
@@ -1346,37 +2096,100 @@
                     showMessage('Select images or frames first', 'error');
                     return;
                 }
-                for (let i = 0; i < selectedImages.length; i++) {
-                    if (window.uiSelection && window.uiSelection[i] === false) continue;
-                    await compressImage(i);
+                
+                try {
+                    // Reset stop flag before starting compression
+                    shouldStopCompression = false;
+                    
+                    // Count selected items for banner
+                    const selectedCount = selectedImages.filter((_, i) => window.uiSelection ? window.uiSelection[i] !== false : true).length;
+                    showScanningBanner(`Compressing ${selectedCount} items...`);
+                    
+                    for (let i = 0; i < selectedImages.length; i++) {
+                        if (shouldStopCompression) {
+                            showMessage('Compression stopped by user', 'info');
+                            break;
+                        }
+                        if (window.uiSelection && window.uiSelection[i] === false) continue;
+                        await compressImage(i);
+                    }
+                    
+                    // Only change to export state if compression completed without being stopped
+                    if (!shouldStopCompression) {
+                        primaryActionBtn.dataset.state = 'export';
+                        primaryActionBtn.textContent = 'Export';
+                    }
+                } catch (error) {
+                    showMessage('Error during compression: ' + error.message, 'error');
+                } finally {
+                    hideScanningBanner();
                 }
-                primaryActionBtn.dataset.state = 'export';
-                primaryActionBtn.textContent = 'Export';
             } else {
                 // Safety: if nothing is compressed yet (e.g., after rescan), compress selected then export
                 const hasCompressed = window.compressedFiles && Object.keys(window.compressedFiles).length > 0;
                 if (!hasCompressed) {
-                    for (let i = 0; i < selectedImages.length; i++) {
-                        if (window.uiSelection && window.uiSelection[i] === false) continue;
-                        await compressImage(i);
+                    try {
+                        // Reset stop flag before starting compression
+                        shouldStopCompression = false;
+                        
+                        // Count selected items for banner
+                        const selectedCount = selectedImages.filter((_, i) => window.uiSelection ? window.uiSelection[i] !== false : true).length;
+                        showScanningBanner(`Compressing ${selectedCount} items...`);
+                        
+                        for (let i = 0; i < selectedImages.length; i++) {
+                            if (shouldStopCompression) {
+                                showMessage('Compression stopped by user', 'info');
+                                break;
+                            }
+                            if (window.uiSelection && window.uiSelection[i] === false) continue;
+                            await compressImage(i);
+                        }
+                    } catch (error) {
+                        showMessage('Error during compression: ' + error.message, 'error');
+                    } finally {
+                        hideScanningBanner();
                     }
                 }
                 exportAllCompressed();
             }
         });
 
-        async function exportAllCompressed() {
-            const outputFormat = document.getElementById('outputFormat').value;
-            let extension = 'png';
-            if (outputFormat === 'image/jpeg') extension = 'jpg';
-            else if (outputFormat === 'image/webp') extension = 'webp';
-            else if (outputFormat === 'image/png') extension = 'png';
+        // Handle Replace button click
+        const replaceBtn = document.getElementById('replaceBtn');
+        if (replaceBtn) {
+            replaceBtn.addEventListener('click', () => {
+                console.log('Replace button clicked');
+                handleReplaceAll();
+            });
+        }
 
+        async function exportAllCompressed() {
             // Ensure selected items are compressed
+            const needCompression = [];
             for (let i = 0; i < selectedImages.length; i++) {
                 if (window.uiSelection && window.uiSelection[i] === false) continue;
                 if (!window.compressedFiles[i]) {
-                    await compressImage(i);
+                    needCompression.push(i);
+                }
+            }
+            
+            if (needCompression.length > 0) {
+                try {
+                    // Reset stop flag before starting compression
+                    shouldStopCompression = false;
+                    
+                    showScanningBanner(`Compressing ${needCompression.length} items...`);
+                    for (const i of needCompression) {
+                        if (shouldStopCompression) {
+                            showMessage('Compression stopped by user', 'info');
+                            break;
+                        }
+                        await compressImage(i);
+                    }
+                } catch (error) {
+                    showMessage('Error during compression: ' + error.message, 'error');
+                } finally {
+                    hideScanningBanner();
                 }
             }
 
@@ -1398,6 +2211,13 @@
                 const compressedFilesForImage = filesMap[idx];
                 if (!compressedFilesForImage) return;
                 
+                // Get individual format for this image, fallback to global format
+                const outputFormat = window.individualFormats[idx] || document.getElementById('outputFormat').value;
+                let extension = 'png';
+                if (outputFormat === 'JPEG') extension = 'jpg';
+                else if (outputFormat === 'WEBP') extension = 'webp';
+                else if (outputFormat === 'PNG') extension = 'png';
+                
                 const originalName = (selectedImages[idx] && selectedImages[idx].name) || 'image';
                 const sanitizedPath = sanitizePath(originalName);
                 const nameWithoutExt = sanitizedPath.replace(/\.[^/.]+$/, "");
@@ -1405,7 +2225,7 @@
                 // If compressedFilesForImage is an object (multiple scales)
                 if (typeof compressedFilesForImage === 'object' && !compressedFilesForImage.size) {
                     Object.entries(compressedFilesForImage).forEach(([scale, file]) => {
-                        const scaleStr = scale === '0.5' ? '05x' : scale + 'x';
+                        const scaleStr = scale + 'x';
                         let filename = nameWithoutExt + '_' + scaleStr + '.' + extension;
                         let counter = 1;
                         
@@ -1498,6 +2318,8 @@
                 
                 console.log('Selected scales:', scales);
                 console.log('Primary scale:', primaryScale);
+                console.log('Primary scale type:', typeof primaryScale);
+                console.log('selectedScales Set:', selectedScales);
                 
                 showScanningBanner('Scanning for images...');
                 
@@ -1558,6 +2380,23 @@
             if (type === 'replace-success' || type === 'copy-success') {
                 showMessage(message, 'success');
                 hideScanningBanner();
+                
+                // For replace-success, update the button state
+                if (type === 'replace-success') {
+                    const replaceBtn = document.getElementById('replaceBtn');
+                    if (replaceBtn && replaceBtn.textContent === 'Replacing...') {
+                        replaceBtn.textContent = 'Replaced!';
+                        replaceBtn.style.background = '#1ded62';
+                        replaceBtn.style.color = '#ffffff';
+                        setTimeout(() => {
+                            replaceBtn.disabled = false;
+                            replaceBtn.textContent = 'Replace';
+                            replaceBtn.style.background = '#e9eaf8';
+                            replaceBtn.style.color = '#070707';
+                        }, 2000);
+                    }
+                }
+                
                 // Refresh the image list after successful operation
                 setTimeout(() => {
                     requestSelectedImages();
@@ -1585,10 +2424,38 @@
             window.compressedFiles = {};
             window.uiSelection = {};
             
+            // Hide Replace button when refreshing list
+            const replaceBtn = document.getElementById('replaceBtn');
+            if (replaceBtn) {
+                replaceBtn.classList.add('hidden');
+                replaceBtn.disabled = true;
+            }
+            
             // Initialize individual scales from Figma export settings
             selectedImages.forEach((img, index) => {
                 const exportScales = img.exportScales || [1];
                 window.individualScales[index] = exportScales.map(scale => scale.toString()); // Store as array of strings
+                
+                // Initialize individual formats from Figma export settings
+                const exportFormats = img.exportFormats || ['PNG'];
+                console.log('Initializing format for image', index, 'with exportFormats:', exportFormats);
+                if (exportFormats.length === 1) {
+                    const format = exportFormats[0];
+                    if (format === 'JPG') {
+                        window.individualFormats[index] = 'JPEG';
+                        console.log('Set format for image', index, 'to JPEG (from JPG)');
+                    } else if (['PNG', 'JPEG', 'WEBP'].includes(format)) {
+                        window.individualFormats[index] = format;
+                        console.log('Set format for image', index, 'to', format);
+                    } else {
+                        window.individualFormats[index] = 'PNG'; // Default
+                        console.log('Set format for image', index, 'to PNG (unknown format', format, ')');
+                    }
+                } else {
+                    // Multiple formats - default to PNG
+                    window.individualFormats[index] = 'PNG';
+                    console.log('Set format for image', index, 'to PNG (multiple formats)');
+                }
             });
             
             if (primaryActionBtn) {
@@ -1621,13 +2488,46 @@
                             '<div class="image-size" id="size-' + index + '"></div>' +
                         '</div>' +
                         '<div class="image-stats">' +
-                            '<div class="individual-scale-selector">' +
-                                '<button type="button" class="individual-scale-button" id="individualScale-' + index + '">' +
-                                    '<span class="individual-scale-text" id="individualScaleText-' + index + '">' + getIndividualScaleText(individualScale) + '</span>' +
-                                    '<svg class="individual-scale-arrow" id="individualScaleArrow-' + index + '" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                                        '<path d="M3.4138 5.65088C3.92694 5.18906 4.7173 5.23065 5.17913 5.74379L8.00001 8.87811L10.8209 5.74379C11.2827 5.23065 12.0731 5.18906 12.5862 5.65088C13.0994 6.1127 13.141 6.90307 12.6791 7.4162L8.92913 11.5829C8.69207 11.8463 8.35437 11.9967 8.00001 11.9967C7.64565 11.9967 7.30795 11.8463 7.07089 11.5829L3.32089 7.4162C2.85907 6.90307 2.90067 6.1127 3.4138 5.65088Z" fill="#666666"/>' +
-                                    '</svg>' +
-                                '</button>' +
+                            '<div class="individual-selectors">' +
+                                '<div class="individual-format-selector">' +
+                                    '<button type="button" class="individual-format-button" id="individualFormat-' + index + '">' +
+                                        '<span class="individual-format-text" id="individualFormatText-' + index + '">' + getIndividualFormatText(img.exportFormats, index) + '</span>' +
+                                        '<svg class="individual-format-arrow" id="individualFormatArrow-' + index + '" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                                            '<path d="M3.4138 5.65088C3.92694 5.18906 4.7173 5.23065 5.17913 5.74379L8.00001 8.87811L10.8209 5.74379C11.2827 5.23065 12.0731 5.18906 12.5862 5.65088C13.0994 6.1127 13.141 6.90307 12.6791 7.4162L8.92913 11.5829C8.69207 11.8463 8.35437 11.9967 8.00001 11.9967C7.64565 11.9967 7.30795 11.8463 7.07089 11.5829L3.32089 7.4162C2.85907 6.90307 2.90067 6.1127 3.4138 5.65088Z" fill="#666666"/>' +
+                                        '</svg>' +
+                                    '</button>' +
+                                    '<div class="individual-format-popup" id="individualFormatPopup-' + index + '">' +
+
+                                        '<div class="format-option" data-format="PNG" data-index="' + index + '">' +
+                                            '<span class="checkbox-wrap">' +
+                                                '<input type="radio" class="individual-format-checkbox" name="format-' + index + '" id="individualFormat-' + index + '-png" value="PNG" />' +
+                                                '<span class="checkbox-visual"></span>' +
+                                            '</span>' +
+                                            '<span class="format-option-text">PNG (lossless)</span>' +
+                                        '</div>' +
+                                        '<div class="format-option" data-format="JPEG" data-index="' + index + '">' +
+                                            '<span class="checkbox-wrap">' +
+                                                '<input type="radio" class="individual-format-checkbox" name="format-' + index + '" id="individualFormat-' + index + '-jpeg" value="JPEG" />' +
+                                                '<span class="checkbox-visual"></span>' +
+                                            '</span>' +
+                                            '<span class="format-option-text">JPEG (smaller files)</span>' +
+                                        '</div>' +
+                                        '<div class="format-option" data-format="WEBP" data-index="' + index + '">' +
+                                            '<span class="checkbox-wrap">' +
+                                                '<input type="radio" class="individual-format-checkbox" name="format-' + index + '" id="individualFormat-' + index + '-webp" value="WEBP" />' +
+                                                '<span class="checkbox-visual"></span>' +
+                                            '</span>' +
+                                            '<span class="format-option-text">WebP (best compression)</span>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="individual-scale-selector">' +
+                                    '<button type="button" class="individual-scale-button" id="individualScale-' + index + '">' +
+                                        '<span class="individual-scale-text" id="individualScaleText-' + index + '">' + getIndividualScaleText(individualScale) + '</span>' +
+                                        '<svg class="individual-scale-arrow" id="individualScaleArrow-' + index + '" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                                            '<path d="M3.4138 5.65088C3.92694 5.18906 4.7173 5.23065 5.17913 5.74379L8.00001 8.87811L10.8209 5.74379C11.2827 5.23065 12.0731 5.18906 12.5862 5.65088C13.0994 6.1127 13.141 6.90307 12.6791 7.4162L8.92913 11.5829C8.69207 11.8463 8.35437 11.9967 8.00001 11.9967C7.64565 11.9967 7.30795 11.8463 7.07089 11.5829L3.32089 7.4162C2.85907 6.90307 2.90067 6.1127 3.4138 5.65088Z" fill="#666666"/>' +
+                                        '</svg>' +
+                                    '</button>' +
                                 '<div class="individual-scale-popup" id="individualScalePopup-' + index + '">' +
                                     '<div class="scale-option" data-scale="1" data-index="' + index + '">' +
                                         '<span class="checkbox-wrap">' +
@@ -1650,19 +2550,17 @@
                                         '</span>' +
                                         '<span class="scale-option-text">3x (Triple size)</span>' +
                                     '</div>' +
-                                    '<div class="scale-option" data-scale="0.5" data-index="' + index + '">' +
+                                    '<div class="scale-option" data-scale="4" data-index="' + index + '">' +
                                         '<span class="checkbox-wrap">' +
-                                            '<input type="checkbox" class="individual-scale-checkbox" id="individualScale-' + index + '-05" value="0.5" ' + (individualScale.includes('0.5') ? 'checked' : '') + ' />' +
+                                            '<input type="checkbox" class="individual-scale-checkbox" id="individualScale-' + index + '-4" value="4" ' + (individualScale.includes('4') ? 'checked' : '') + ' />' +
                                             '<span class="checkbox-visual"></span>' +
                                         '</span>' +
-                                        '<span class="scale-option-text">0.5x (Half size)</span>' +
+                                        '<span class="scale-option-text">4x (Quadro size)</span>' +
                                     '</div>' +
+
                                 '</div>' +
                             '</div>' +
                         '</div>' +
-                    '</div>' +
-                    '<div class="progress-bar hidden" id="progress-' + index + '">' +
-                        '<div class="progress-fill" id="progress-fill-' + index + '"></div>' +
                     '</div>' +
                     '<div id="results-' + index + '"></div>' +
                 '</div>';
@@ -1711,24 +2609,18 @@
                 scaleButton.addEventListener('click', (e) => {
                     e.stopPropagation();
                     
-                    // Close all other popups
-                    selectedImages.forEach((_, otherIndex) => {
-                        if (otherIndex !== index) {
-                            const otherPopup = document.getElementById('individualScalePopup-' + otherIndex);
-                            const otherArrow = document.getElementById('individualScaleArrow-' + otherIndex);
-                            if (otherPopup && otherArrow) {
-                                otherPopup.classList.remove('open');
-                                otherArrow.classList.remove('rotated');
-                            }
-                        }
-                    });
-                    
-                    // Toggle current popup
-                    const isOpen = scalePopup.classList.contains('open');
-                    if (isOpen) {
+                    // Check if this popup is already open
+                    if (scalePopup.classList.contains('open')) {
+                        // Close this popup
                         scalePopup.classList.remove('open');
                         scaleArrow.classList.remove('rotated');
+                        // Remove focus to hide blue outline
+                        scaleButton.blur();
                     } else {
+                        // Close all other popups first (including global scale popup)
+                        closeAllPopups();
+                        
+                        // Then open current popup
                         scalePopup.classList.add('open');
                         scaleArrow.classList.add('rotated');
                     }
@@ -1738,6 +2630,7 @@
                 const checkboxes = scalePopup.querySelectorAll('.individual-scale-checkbox');
                 checkboxes.forEach(checkbox => {
                     checkbox.addEventListener('change', (e) => {
+                        console.log('Individual scale checkbox change event:', e.target.value, 'checked:', e.target.checked, 'for image index:', index);
                         const scale = e.target.value;
                         if (!window.individualScales[index]) {
                             window.individualScales[index] = [];
@@ -1776,24 +2669,178 @@
                         updateGlobalScaleState();
                     });
                 });
+                
+                // Add click handlers to individual scale option text for better interaction
+                const individualScaleOptions = scalePopup.querySelectorAll('.scale-option');
+                individualScaleOptions.forEach(option => {
+                    const textElement = option.querySelector('.scale-option-text');
+                    if (textElement) {
+                        textElement.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const checkbox = option.querySelector('.individual-scale-checkbox');
+                            if (checkbox) {
+                                checkbox.checked = !checkbox.checked;
+                                console.log('Dispatching change event for individual scale text click:', checkbox.value, 'checked:', checkbox.checked, 'for image index:', option.dataset.index);
+                                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        });
+                    }
+                });
             });
 
-            // Close all individual scale popups when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.individual-scale-selector')) {
-                    selectedImages.forEach((_, index) => {
-                        const popup = document.getElementById('individualScalePopup-' + index);
-                        const arrow = document.getElementById('individualScaleArrow-' + index);
-                        if (popup && arrow) {
-                            popup.classList.remove('open');
-                            arrow.classList.remove('rotated');
+            // attach individual format selector handlers
+            selectedImages.forEach((img, index) => {
+                const formatButton = document.getElementById('individualFormat-' + index);
+                const formatPopup = document.getElementById('individualFormatPopup-' + index);
+                const formatArrow = document.getElementById('individualFormatArrow-' + index);
+                
+                if (!formatButton || !formatPopup || !formatArrow) return;
+                
+                // Set initial format selection based on Figma export settings
+                const initialFormat = window.individualFormats[index] || 'PNG';
+                const formatRadios = formatPopup.querySelectorAll('.individual-format-checkbox');
+                formatRadios.forEach(radio => {
+                    radio.checked = (radio.value === initialFormat);
+                });
+                
+                // Toggle popup
+                formatButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    // Check if this popup is already open
+                    if (formatPopup.classList.contains('open')) {
+                        // Close this popup
+                        formatPopup.classList.remove('open');
+                        formatArrow.classList.remove('rotated');
+                        // Remove focus to hide blue outline
+                        formatButton.blur();
+                    } else {
+                        // Close all other popups first
+                        closeAllPopups();
+                        
+                        // Then open current popup
+                        formatPopup.classList.add('open');
+                        formatArrow.classList.add('rotated');
+                    }
+                });
+                
+                // Handle format selection - add click handlers to format options
+                const formatOptions = formatPopup.querySelectorAll('.format-option');
+                formatOptions.forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        console.log('Individual format option clicked:', option.dataset.format);
+                        const selectedFormat = option.dataset.format;
+                        const radio = option.querySelector('.individual-format-checkbox');
+                        
+                        if (radio) {
+                            // Uncheck all radios in this group first
+                            formatRadios.forEach(r => r.checked = false);
+                            // Check the selected one
+                            radio.checked = true;
+                            
+                            window.individualFormats[index] = selectedFormat;
+                            
+                            // Update button text
+                            const formatText = document.getElementById('individualFormatText-' + index);
+                            if (formatText) {
+                                formatText.textContent = getIndividualFormatText(img.exportFormats, index);
+                            }
+                            
+                            // Close popup
+                            formatPopup.classList.remove('open');
+                            formatArrow.classList.remove('rotated');
+                            
+                            // Update global format state
+                            updateGlobalFormatState();
                         }
                     });
+                });
+                
+                // Also keep the original change handlers as backup
+                formatRadios.forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            const selectedFormat = e.target.value;
+                            window.individualFormats[index] = selectedFormat;
+                            
+                            // Update button text
+                            const formatText = document.getElementById('individualFormatText-' + index);
+                            if (formatText) {
+                                formatText.textContent = getIndividualFormatText(img.exportFormats, index);
+                            }
+                            
+                            // Close popup
+                            formatPopup.classList.remove('open');
+                            formatArrow.classList.remove('rotated');
+                            
+                            // Update global format state
+                            updateGlobalFormatState();
+                        }
+                    });
+                });
+                
+                // Add click handlers to individual format option text for better interaction
+                formatOptions.forEach(option => {
+                    const textElement = option.querySelector('.format-option-text');
+                    if (textElement) {
+                        textElement.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const radio = option.querySelector('.individual-format-checkbox');
+                            if (radio) {
+                                // Uncheck all radios in this group first
+                                formatRadios.forEach(r => r.checked = false);
+                                // Check the selected one
+                                radio.checked = true;
+                                radio.dispatchEvent(new Event('change'));
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Add click handlers for image items to toggle checkboxes when clicking on name or preview
+            selectedImages.forEach((img, index) => {
+                const imageItem = document.getElementById('image-' + index);
+                if (imageItem) {
+                    // Add click handler to the image item but exclude interactive elements
+                    imageItem.addEventListener('click', (e) => {
+                        // Don't trigger on clicks to checkboxes, buttons, or other interactive elements
+                        if (e.target.closest('.checkbox-wrap') || 
+                            e.target.closest('button') || 
+                            e.target.closest('.individual-format-popup') ||
+                            e.target.closest('.individual-scale-popup')) {
+                            return;
+                        }
+                        
+                        // Toggle the checkbox
+                        const checkbox = document.getElementById('cb-' + index);
+                        if (checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                            
+                            // Update selection state
+                            window.uiSelection[index] = checkbox.checked;
+                            
+                            // Update visual state
+                            if (checkbox.checked) {
+                                imageItem.classList.remove('unselected');
+                            } else {
+                                imageItem.classList.add('unselected');
+                            }
+                            
+                            // Update select all indicator
+                            updateSelectAllIndicator();
+                        }
+                    });
+                    
+                    // Also add cursor pointer style to indicate clickability
+                    imageItem.style.cursor = 'pointer';
                 }
             });
 
             updateSelectAllIndicator();
             updateGlobalScaleState(); // Update global scale state based on individual scales
+            updateGlobalFormatState(); // Update global format state based on individual formats
         }
 
         function setAllSelected(checked) {
@@ -1878,6 +2925,66 @@
             }
         }
 
+        function updateGlobalFormatState() {
+            console.log('updateGlobalFormatState called');
+            if (selectedImages.length === 0) {
+                console.log('No selected images, skipping format state update');
+                return;
+            }
+            
+            console.log('Current individualFormats:', window.individualFormats);
+            
+            // Check if all images have the same format selection
+            const firstImageFormat = window.individualFormats[0];
+            const allSameFormat = selectedImages.every((_, index) => {
+                const currentFormat = window.individualFormats[index];
+                console.log('Checking format for image', index, ':', currentFormat, 'vs first:', firstImageFormat);
+                return currentFormat === firstImageFormat;
+            });
+            
+            console.log('All images have same format:', allSameFormat, 'first format:', firstImageFormat);
+            
+            const formatSelectedText = document.getElementById('formatSelectedText');
+            
+            if (!allSameFormat) {
+                console.log('Setting global format to "Different formats"');
+                // Different formats selected - show "Different formats"
+                if (formatSelectedText) {
+                    formatSelectedText.textContent = 'Different formats';
+                }
+                
+                // Update format radio buttons to show "Different formats" as selected
+                const formatRadios = document.querySelectorAll('.format-checkbox');
+                formatRadios.forEach(radio => {
+                    const formatOption = radio.closest('.format-option');
+                    radio.checked = (formatOption && formatOption.dataset.format === 'different');
+                });
+            } else {
+                console.log('Setting global format to', firstImageFormat);
+                // All same format - update global selector
+                if (formatSelectedText) {
+                    const formatText = getFormatDisplayText(firstImageFormat);
+                    formatSelectedText.textContent = formatText;
+                }
+                
+                // Update format radio buttons
+                const formatRadios = document.querySelectorAll('.format-checkbox');
+                formatRadios.forEach(radio => {
+                    const formatOption = radio.closest('.format-option');
+                    radio.checked = (formatOption && formatOption.dataset.format === firstImageFormat);
+                });
+            }
+        }
+
+        function getFormatDisplayText(format) {
+            switch(format) {
+                case 'PNG': return 'PNG (lossless)';
+                case 'JPEG': return 'JPEG (smaller files)';
+                case 'WEBP': return 'WebP (best compression)';
+                default: return format;
+            }
+        }
+
         function applyScaleToAllImages(scales) {
             if (selectedImages.length === 0) return;
             
@@ -1910,34 +3017,52 @@
             
             const imageData = selectedImages[index];
             const imageElement = document.getElementById('image-' + index);
-            const progressBar = document.getElementById('progress-' + index);
-            const progressFill = document.getElementById('progress-fill-' + index);
             const resultsDiv = document.getElementById('results-' + index);
             
             try {
                 isProcessing = true;
                 imageElement.classList.add('processing');
-                progressBar.classList.remove('hidden');
                 resultsDiv.innerHTML = '';
+
+                // Check if compression should be stopped before starting
+                if (shouldStopCompression) {
+                    throw new Error('Compression stopped by user');
+                }
 
                 // Use individual scales for this image
                 const individualScales = window.individualScales[index] || ['1'];
                 const scales = individualScales.map(scale => parseFloat(scale));
                 const compressedFiles = {};
-                let totalProgress = 0;
-                const progressStep = 100 / scales.length;
 
                 // Get compression settings
                 const maxSizeMB = parseFloat(document.getElementById('maxSize').value);
                 const initialQuality = parseInt(document.getElementById('quality').value) / 100;
-                const outputFormat = document.getElementById('outputFormat').value;
+                const outputFormat = window.individualFormats[index] || 'PNG';
+                
+                console.log('Compression settings for image', index, ':');
+                console.log('- Individual format:', window.individualFormats[index]);
+                console.log('- Global format:', document.getElementById('outputFormat').value);
+                console.log('- Final outputFormat:', outputFormat);
+                console.log('- maxSizeMB:', maxSizeMB);
+                console.log('- initialQuality:', initialQuality);
 
                 // Compress for each selected scale
                 for (let i = 0; i < scales.length; i++) {
+                    // Check if compression should be stopped before each scale
+                    if (shouldStopCompression) {
+                        throw new Error('Compression stopped by user');
+                    }
+                    
                     const scale = scales[i];
                     
                     // Request image data at specific scale from Figma
                     const scaledImageData = await requestImageAtScale(imageData.id, scale);
+                    
+                    // Check again after async operation
+                    if (shouldStopCompression) {
+                        throw new Error('Compression stopped by user');
+                    }
+                    
                     const imageBlob = new Blob([new Uint8Array(scaledImageData)]);
                     const file = new File([imageBlob], imageData.name, { type: 'image/png' });
 
@@ -1945,23 +3070,45 @@
                     const options = {
                         maxSizeMB: maxSizeMB,
                         initialQuality: initialQuality,
-                        useWebWorker: true,
-                        onProgress: (scaleProgress) => {
-                            const currentScaleProgress = totalProgress + (scaleProgress * progressStep / 100);
-                            progressFill.style.width = currentScaleProgress + '%';
-                        }
+                        useWebWorker: true
                     };
 
                     if (outputFormat) {
-                        options.fileType = outputFormat;
+                        // Convert format to proper MIME type
+                        let mimeType = 'image/png'; // default
+                        if (outputFormat === 'JPEG') mimeType = 'image/jpeg';
+                        else if (outputFormat === 'WEBP') mimeType = 'image/webp';
+                        else if (outputFormat === 'PNG') mimeType = 'image/png';
+                        
+                        options.fileType = mimeType;
+                        console.log('Setting fileType to:', mimeType, 'for format:', outputFormat);
                     }
 
                     // Compress the image
-                    const compressedFile = await imageCompression(file, options);
-                    compressedFiles[scale] = compressedFile;
+                    console.log('Starting compression with options:', options);
+                    console.log('Original file size:', file.size, 'bytes');
+                    console.log('Original file type:', file.type);
+                    console.log('imageCompression function available:', typeof imageCompression);
                     
-                    totalProgress += progressStep;
-                    progressFill.style.width = totalProgress + '%';
+                    if (typeof imageCompression !== 'function') {
+                        throw new Error('imageCompression library not loaded!');
+                    }
+                    
+                    const compressedFile = await imageCompression(file, options);
+                    
+                    console.log('Compression completed:');
+                    console.log('- Compressed file size:', compressedFile.size, 'bytes');
+                    console.log('- Compressed file type:', compressedFile.type);
+                    console.log('- Size reduction:', Math.round((1 - compressedFile.size / file.size) * 100) + '%');
+                    console.log('- Target maxSizeMB:', maxSizeMB);
+                    console.log('- Target achieved:', compressedFile.size <= maxSizeMB * 1024 * 1024);
+                    
+                    // Check again after compression
+                    if (shouldStopCompression) {
+                        throw new Error('Compression stopped by user');
+                    }
+                    
+                    compressedFiles[scale] = compressedFile;
                 }
                 
                 // Store all compressed files for download
@@ -1970,14 +3117,15 @@
                 
                 // Update inline size display showing all scales
                 updateSizeDisplay(index, imageData, compressedFiles);
+                
+                // Show Replace button after successful compression
+                showReplaceButton(index);
 
             } catch (error) {
                 resultsDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
             } finally {
                 isProcessing = false;
                 imageElement.classList.remove('processing');
-                progressBar.classList.add('hidden');
-                progressFill.style.width = '0%';
             }
         }
 
@@ -2037,12 +3185,17 @@
             const originalSize = originalImageData.imageData.length;
             const scales = Object.keys(compressedFiles).sort((a, b) => parseFloat(a) - parseFloat(b));
             
+            console.log('updateSizeDisplay for image', index, ':');
+            console.log('- Original size:', originalSize, 'bytes');
+            console.log('- Compressed files:', compressedFiles);
+            console.log('- Scales:', scales);
+            
             if (scales.length === 1) {
                 const scale = scales[0];
                 const compressedSize = compressedFiles[scale].size;
                 const totalUncompressed = calculateTotalUncompressedSize(index, originalSize);
                 const compressionPercent = Math.round(((totalUncompressed - compressedSize) / totalUncompressed) * 100);
-                sizeEl.innerHTML = formatFileSize(totalUncompressed) + ' <span class="compressed-size">-' + compressionPercent + '%</span>';
+                sizeEl.innerHTML = formatFileSize(totalUncompressed) + ' <span class="compressed-size">' + (compressionPercent >= 0 ? '-' : '+') + Math.abs(compressionPercent) + '%</span>';
             } else {
                 // Calculate total compression for multiple files
                 // We need to compare total compressed size vs total uncompressed size for all scales
@@ -2059,7 +3212,7 @@
                 });
                 
                 const compressionPercent = Math.round(((totalUncompressedSize - totalCompressedSize) / totalUncompressedSize) * 100);
-                sizeEl.innerHTML = formatFileSize(totalUncompressedSize) + ' <span class="compressed-size">-' + compressionPercent + '%</span>';
+                sizeEl.innerHTML = formatFileSize(totalUncompressedSize) + ' <span class="compressed-size">' + (compressionPercent >= 0 ? '-' : '+') + Math.abs(compressionPercent) + '%</span>';
             }
         }
 
@@ -2070,6 +3223,12 @@
             
             const originalSize = selectedImages[index].imageData.length;
             const totalSize = calculateTotalUncompressedSize(index, originalSize);
+            
+            console.log('updateInitialSizeDisplay for image', index, ':');
+            console.log('- Original size:', originalSize, 'bytes');
+            console.log('- Total size (with scales):', totalSize, 'bytes');
+            console.log('- Selected scales:', window.individualScales[index]);
+            
             sizeEl.innerHTML = formatFileSize(totalSize);
         }
 
@@ -2097,6 +3256,86 @@
             }, '*');
         }
 
+        // Show Replace button after successful compression
+        function showReplaceButton(index) {
+            // Check if there are any compressed files available
+            const hasCompressedFiles = Object.keys(window.compressedFiles || {}).some(key => 
+                window.compressedFiles[key] && Object.keys(window.compressedFiles[key]).length > 0
+            );
+            
+            const replaceBtn = document.getElementById('replaceBtn');
+            if (!replaceBtn) return;
+            
+            if (hasCompressedFiles) {
+                replaceBtn.classList.remove('hidden');
+                replaceBtn.disabled = false;
+            } else {
+                replaceBtn.classList.add('hidden');
+                replaceBtn.disabled = true;
+            }
+        }
+
+        // Handle Replace button click - process all compressed files
+        async function handleReplaceAll() {
+            if (!window.compressedFiles || Object.keys(window.compressedFiles).length === 0) {
+                showMessage('No compressed files available for replacement', 'error');
+                return;
+            }
+            
+            const replaceBtn = document.getElementById('replaceBtn');
+            if (!replaceBtn) return;
+            
+            // Show loading state
+            replaceBtn.disabled = true;
+            replaceBtn.textContent = 'Replacing...';
+            
+            let processedCount = 0;
+            const totalCount = Object.keys(window.compressedFiles).length;
+            
+            // Process each compressed image one by one
+            for (const index of Object.keys(window.compressedFiles)) {
+                const compressedFiles = window.compressedFiles[index];
+                const selectedScales = window.individualScales[index] || ['1'];
+                const imageData = selectedImages[index];
+                
+                if (!imageData || !compressedFiles) {
+                    processedCount++;
+                    continue;
+                }
+                
+                // Use scale 1x for replacing the actual image, or first available scale
+                let compressedDataForReplace = compressedFiles['1'];
+                if (!compressedDataForReplace && Object.keys(compressedFiles).length > 0) {
+                    // If no 1x scale, use the first available scale
+                    const firstScale = Object.keys(compressedFiles)[0];
+                    compressedDataForReplace = compressedFiles[firstScale];
+                }
+                
+                if (!compressedDataForReplace) {
+                    processedCount++;
+                    continue;
+                }
+                
+                // Convert Blob to ArrayBuffer and then to Array
+                const arrayBuffer = await compressedDataForReplace.arrayBuffer();
+                const compressedImageData = Array.from(new Uint8Array(arrayBuffer));
+                
+                // Send to main thread to replace the actual image
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'compress-and-replace',
+                        nodeId: imageData.id,
+                        compressedImageData: compressedImageData
+                    }
+                }, '*');
+                
+                // Wait a bit between replacements to let Figma process each one
+                await new Promise(resolve => setTimeout(resolve, 150));
+                
+                processedCount++;
+            }
+        }
+
         // Download compressed file
         function downloadCompressedFile(index) {
             const compressedFile = window.compressedFiles[index];
@@ -2112,12 +3351,14 @@
             
             // Generate filename based on original name and compression settings
             const originalName = selectedImages[index].name;
-            const outputFormat = document.getElementById('outputFormat').value;
+            // Use individual format for this specific image, fallback to global format
+            const outputFormat = window.individualFormats[index] || document.getElementById('outputFormat').value;
             
             let extension = 'png'; // default
-            if (outputFormat === 'image/jpeg') extension = 'jpg';
-            else if (outputFormat === 'image/webp') extension = 'webp';
-            else if (outputFormat === 'image/png') extension = 'png';
+            if (outputFormat === 'JPEG') extension = 'jpg';
+            else if (outputFormat === 'WEBP') extension = 'webp';
+            else if (outputFormat === 'PNG') extension = 'png';
+
             
             // Remove existing extension from name if any
             const nameWithoutExt = originalName.replace(/\.[^/.]+$/, "");
@@ -2166,20 +3407,12 @@
             if (scanningBanner) {
                 scanningBanner.classList.remove('hidden');
             }
-            
-            // Dim existing images if they are displayed
-            if (selectedImages.length > 0) {
-                document.body.classList.add('images-dimmed');
-            }
         }
         
         function hideScanningBanner() {
             if (scanningBanner) {
                 scanningBanner.classList.add('hidden');
             }
-            
-            // Remove dimming effect
-            document.body.classList.remove('images-dimmed');
         }
 
         function showMessage(message, type) {

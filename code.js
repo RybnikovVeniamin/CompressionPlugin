@@ -15,6 +15,42 @@ let shouldStopProcessing = false;
 // Cache for exported images to avoid re-exporting
 let exportCache = new Map();
 
+// Semaphore for limiting concurrent exportAsync operations
+let concurrentExports = 0;
+const MAX_CONCURRENT_EXPORTS = 1; // Maximum 1 export at a time to prevent UI blocking
+
+// Queue for waiting export operations
+let exportQueue = [];
+
+// Function to safely execute exportAsync with concurrency control
+async function safeExportAsync(node, exportSettings) {
+  return new Promise((resolve, reject) => {
+    exportQueue.push({ node, exportSettings, resolve, reject });
+    processExportQueue();
+  });
+}
+
+// Process export queue with concurrency limit
+async function processExportQueue() {
+  if (concurrentExports >= MAX_CONCURRENT_EXPORTS || exportQueue.length === 0) {
+    return;
+  }
+  
+  concurrentExports++;
+  const { node, exportSettings, resolve, reject } = exportQueue.shift();
+  
+  try {
+    const result = await node.exportAsync(exportSettings);
+    resolve(result);
+  } catch (error) {
+    reject(error);
+  } finally {
+    concurrentExports--;
+    // Give UI time to breathe before processing next export
+    setTimeout(() => processExportQueue(), 50);
+  }
+}
+
 // Helper function to process nodes in batches, non-blocking
 async function processNodeForImages(node, imageNodes, scale, useCurrentView) {
   console.log('Processing node: ' + node.name + ' (type: ' + node.type + ')');
@@ -40,8 +76,8 @@ async function processBatchQueue() {
   isCurrentlyProcessing = true;
   shouldStopProcessing = false;
   
-  const BATCH_SIZE = 5; // Process 5 items at once
-  const DELAY_BETWEEN_BATCHES = 10; // 10ms delay between batches
+  const BATCH_SIZE = 2; // Process 2 items at once to reduce load
+  const DELAY_BETWEEN_BATCHES = 100; // 100ms delay between batches to prevent UI blocking
   
   try {
     while (processingQueue.length > 0 && !shouldStopProcessing) {
@@ -67,7 +103,7 @@ async function processBatchQueue() {
       if (remainingItems > 0) {
         figma.ui.postMessage({
           type: 'scan-progress',
-          message: 'Processing... (' + remainingItems + ' items remaining)'
+          message: 'Processing ' + remainingItems + ' items...'
         });
       }
       
@@ -94,6 +130,10 @@ async function processNodeForImagesInternal(node, imageNodes, scale, useCurrentV
     // Add children to processing queue instead of recursive calls
     if ('children' in node && node.children.length > 0) {
       for (let i = 0; i < node.children.length; i++) {
+        // Yield to UI every 10 children to prevent blocking
+        if (i > 0 && i % 10 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
         processingQueue.push({
           node: node.children[i],
           imageNodes: imageNodes,
@@ -110,6 +150,11 @@ async function processNodeForImagesInternal(node, imageNodes, scale, useCurrentV
     console.log('Node ' + node.name + ' has ' + node.fills.length + ' fills');
     for (let j = 0; j < node.fills.length; j++) {
       const fill = node.fills[j];
+      
+      // Yield to UI every few fills to prevent blocking
+      if (j > 0 && j % 3 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
       if (fill.type === 'IMAGE') {
         console.log('Found IMAGE fill in ' + node.name + ', useCurrentView: ' + useCurrentView);
         try {
@@ -129,7 +174,7 @@ async function processNodeForImagesInternal(node, imageNodes, scale, useCurrentV
                 format: 'PNG',
                 constraint: { type: 'SCALE', value: scale }
               };
-              imageData = await node.exportAsync(exportSettings);
+              imageData = await safeExportAsync(node, exportSettings);
               console.log('Successfully exported ' + node.name + ', size: ' + imageData.length + ' bytes');
             } else if (fill.imageHash) {
               console.log('Getting image by hash for ' + node.name + '...');
@@ -155,19 +200,34 @@ async function processNodeForImagesInternal(node, imageNodes, scale, useCurrentV
 
           if (imageData) {
             console.log('Adding ' + node.name + ' to image list');
+            console.log('Node dimensions:', node.width + 'x' + node.height);
+            console.log('Scale factor:', scale);
+            console.log('Calculated dimensions:', (node.width * scale) + 'x' + (node.height * scale));
             
             // Get all export settings from the node
             let exportScales = [1]; // Default to 1x
+            let exportFormats = []; // Figma export formats
             if (node.exportSettings && node.exportSettings.length > 0) {
               const scaleSettings = [];
+              const formatSettings = [];
               for (let i = 0; i < node.exportSettings.length; i++) {
+                // Yield to UI for large export settings arrays
+                if (i > 0 && i % 5 === 0) {
+                  await new Promise(resolve => setTimeout(resolve, 0));
+                }
                 const setting = node.exportSettings[i];
                 if (setting.constraint && setting.constraint.type === 'SCALE') {
                   scaleSettings.push(setting.constraint.value);
                 }
+                if (setting.format && !formatSettings.includes(setting.format)) {
+                  formatSettings.push(setting.format);
+                }
               }
               if (scaleSettings.length > 0) {
                 exportScales = scaleSettings;
+              }
+              if (formatSettings.length > 0) {
+                exportFormats = formatSettings;
               }
             }
             
@@ -181,6 +241,7 @@ async function processNodeForImagesInternal(node, imageNodes, scale, useCurrentV
               originalHeight: node.height,
               scale: scale,
               exportScales: exportScales, // Add all export scales from Figma settings
+              exportFormats: exportFormats, // Add all export formats from Figma settings
               type: useCurrentView ? 'rendered-image' : 'existing-image'
             });
             break; // Only take first image fill
@@ -227,7 +288,9 @@ async function processNodeForImagesInternal(node, imageNodes, scale, useCurrentV
         };
         
         console.log('Exporting ' + node.name + ' with settings:', exportSettings);
-        imageData = await node.exportAsync(exportSettings);
+        console.log('Node dimensions for frame export:', node.width + 'x' + node.height);
+        console.log('Scale factor for frame export:', scale);
+        imageData = await safeExportAsync(node, exportSettings);
         console.log('Successfully exported ' + node.name + ' as image, size: ' + imageData.length + ' bytes');
         
         // Cache the frame export
@@ -241,16 +304,28 @@ async function processNodeForImagesInternal(node, imageNodes, scale, useCurrentV
       
       // Get all export settings from the node
       let exportScales = [1]; // Default to 1x
+      let exportFormats = []; // Figma export formats
       if (node.exportSettings && node.exportSettings.length > 0) {
         const scaleSettings = [];
+        const formatSettings = [];
         for (let i = 0; i < node.exportSettings.length; i++) {
+          // Yield to UI for large export settings arrays
+          if (i > 0 && i % 5 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
           const setting = node.exportSettings[i];
           if (setting.constraint && setting.constraint.type === 'SCALE') {
             scaleSettings.push(setting.constraint.value);
           }
+          if (setting.format && !formatSettings.includes(setting.format)) {
+            formatSettings.push(setting.format);
+          }
         }
         if (scaleSettings.length > 0) {
           exportScales = scaleSettings;
+        }
+        if (formatSettings.length > 0) {
+          exportFormats = formatSettings;
         }
       }
       
@@ -264,6 +339,7 @@ async function processNodeForImagesInternal(node, imageNodes, scale, useCurrentV
         originalHeight: node.height,
         scale: scale,
         exportScales: exportScales, // Add all export scales from Figma settings
+        exportFormats: exportFormats, // Add all export formats from Figma settings
         type: 'generated-image'
       });
     } catch (error) {
@@ -293,6 +369,11 @@ figma.ui.onmessage = async function(msg) {
     for (let i = 0; i < figma.currentPage.selection.length; i++) {
       const node = figma.currentPage.selection[i];
       await processNodeForImages(node, imageNodes, scale, useCurrentView);
+      
+      // Yield to UI every 2 selections to prevent blocking
+      if (i > 0 && i % 2 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
     }
     
     // Wait for queue to finish processing
@@ -335,6 +416,9 @@ figma.ui.onmessage = async function(msg) {
         });
         
         await processNodeForImages(node, imageNodes, scale, useCurrentView);
+        
+        // Yield to UI every node to keep Figma responsive
+        await new Promise(resolve => setTimeout(resolve, 20));
       }
       
       // Wait for queue to finish processing all page nodes
@@ -569,7 +653,7 @@ figma.ui.onmessage = async function(msg) {
         constraint: { type: 'SCALE', value: msg.scale }
       };
       
-      const imageData = await node.exportAsync(exportSettings);
+      const imageData = await safeExportAsync(node, exportSettings);
       
       figma.ui.postMessage({
         type: 'scaled-image-data',
@@ -598,6 +682,83 @@ figma.ui.onmessage = async function(msg) {
       type: 'processing-stopped',
       message: 'Processing has been stopped'
     });
+  }
+
+  if (msg.type === 'replace-export-settings') {
+    try {
+      // Find the node to update
+      const node = await figma.getNodeByIdAsync(msg.nodeId);
+      if (!node) {
+        figma.ui.postMessage({
+          type: 'error',
+          message: 'Could not find the node to update'
+        });
+        return;
+      }
+
+      console.log('Replacing export settings for node:', node.name);
+      console.log('Scales to replace:', msg.scales);
+
+      // Get current export settings or create new ones
+      let exportSettings = node.exportSettings ? [...node.exportSettings] : [];
+      let replacedCount = 0;
+
+      // For each scale, create new image and update/add export setting
+      for (const scale of msg.scales) {
+        const scaleData = msg.scaleData[scale];
+        if (!scaleData) continue;
+
+        try {
+          // Create new image from compressed data
+          const compressedImageData = new Uint8Array(scaleData.data);
+          const newImage = figma.createImage(compressedImageData);
+          
+          // Find existing export setting for this scale or create new one
+          const scaleValue = parseFloat(scale);
+          let existingSettingIndex = exportSettings.findIndex(setting => 
+            setting.constraint && 
+            setting.constraint.type === 'SCALE' && 
+            setting.constraint.value === scaleValue
+          );
+
+          const newExportSetting = {
+            format: scaleData.format,
+            constraint: { type: 'SCALE', value: scaleValue },
+            imageHash: newImage.hash
+          };
+
+          if (existingSettingIndex >= 0) {
+            // Replace existing setting
+            exportSettings[existingSettingIndex] = newExportSetting;
+            console.log(`Replaced existing export setting for ${scale}x`);
+          } else {
+            // Add new setting
+            exportSettings.push(newExportSetting);
+            console.log(`Added new export setting for ${scale}x`);
+          }
+          
+          replacedCount++;
+        } catch (error) {
+          console.error(`Error creating image for scale ${scale}:`, error);
+        }
+      }
+
+      // Update node's export settings
+      node.exportSettings = exportSettings;
+      
+      console.log(`Successfully replaced ${replacedCount} export settings`);
+      figma.ui.postMessage({
+        type: 'replace-success',
+        message: `Successfully replaced ${replacedCount} export setting${replacedCount !== 1 ? 's' : ''}!`
+      });
+
+    } catch (error) {
+      console.error('Error replacing export settings:', error);
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Failed to replace export settings: ' + error.message
+      });
+    }
   }
 };
 
