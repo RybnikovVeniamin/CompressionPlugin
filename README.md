@@ -225,6 +225,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Veniamin Rybnikov**
 - GitHub: [@RybnikovVeniamin](https://github.com/RybnikovVeniamin)
 
+## 🙏 Acknowledgments
+
+Special thanks to:
+- **Ekaterina Tarasenko** - For active testing and valuable feedback
+- **Emil Nizaev** - For thorough testing and bug reporting
+
+Your contributions helped make this plugin better and more reliable!
+
 ---
 
 Made with ❤️ for the Figma community
